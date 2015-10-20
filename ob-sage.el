@@ -32,14 +32,6 @@
 (setq org-export-babel-evaluate nil)
 (defvar org-babel-sage--last-res-var "_emacs_ob_sage_var")
 
-(defun org-babel-sage-initiate-session (&optional session _params)
-  "Create a session named SESSION according to PARAMS."
-  (if (string= session "none")
-      (error "ob-sage currently only supports evaluation using a session.
-Make sure your src block has a :session param.")
-     (setq sage-shell:process-buffer (sage-shell:run-sage "sage"))))
-
-
 ;;;###autoload
 (defun org-babel-sage-ctrl-c-ctrl-c ()
   "Execute current src code block."
@@ -64,8 +56,6 @@ Make sure your src block has a :session param."))
                  (sage-shell:run "sage" nil 'no-switch))))
 
   (org-babel-remove-result)
-  (sage-shell:send-command
-   (format "%s = None" org-babel-sage--last-res-var) nil nil t)
   (message "Evaluating code block ..."))
 
 (defun org-babel-sage-execute1 (body params)
@@ -83,16 +73,19 @@ Make sure your src block has a :session param."))
 
     (org-babel-sage--init session)
 
-    (let ((output-call-back
-           (sage-shell:send-command
-            (format "%s = %s(\"%s\")"
-                    org-babel-sage--last-res-var
-                    (sage-shell:py-mod-func "ip.run_cell")
-                    (s-replace-all (list (cons (rx "\n") "\\\\n")
-                                         (cons (rx "\"") "\\\\\"")) code))))
-          (proc-buf sage-shell:process-buffer))
-      (with-current-buffer proc-buf
-        (sage-shell:after-output-finished
+    (with-current-buffer sage-shell:process-buffer
+      (sage-shell:after-output-finished
+        (sage-shell:send-command
+         (format "%s = None" org-babel-sage--last-res-var) nil nil t)
+
+        (let ((output-call-back
+               (sage-shell:send-command
+                (format "%s = %s(\"%s\")"
+                        org-babel-sage--last-res-var
+                        (sage-shell:py-mod-func "ip.run_cell")
+                        (s-replace-all (list (cons (rx "\n") "\\\\n")
+                                             (cons (rx "\"") "\\\\\"")) code))))
+              (proc-buf sage-shell:process-buffer))
           (sage-shell:after-redirect-finished
             (let ((output (funcall output-call-back)))
               (defun org-babel-execute:sage (_body _params)
