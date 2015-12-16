@@ -33,16 +33,22 @@
 (defvar org-babel-sage--last-res-var "_emacs_ob_sage_var")
 
 ;;;###autoload
-(defun org-babel-sage-ctrl-c-ctrl-c ()
-  "Execute current src code block."
-  (interactive)
+(defun org-babel-sage-ctrl-c-ctrl-c (arg)
+  "Execute current src code block. With prefix argument, evaluate all code in a
+buffer."
+  (interactive "p")
+  (case arg
+    (1 (org-babel-sage-ctrl-c-ctrl-c-1))
+    (4 (ob-sage-execute-buffer))))
+
+(defun org-babel-sage-ctrl-c-ctrl-c-1 ()
   (let* ((info (org-babel-get-src-block-info))
-         (language (car info))
-         (body (nth 1 info))
-         (params (nth 2 info)))
-    (if (member language '("sage" "sage-shell"))
-        (org-babel-sage-execute1 body params)
-      (call-interactively #'org-ctrl-c-ctrl-c))))
+           (language (car info))
+           (body (nth 1 info))
+           (params (nth 2 info)))
+      (if (member language '("sage" "sage-shell"))
+          (org-babel-sage-execute1 body params)
+        (call-interactively #'org-ctrl-c-ctrl-c))))
 
 (defun org-babel-sage--init (session)
   (cond ((string= session "none")
@@ -149,6 +155,40 @@ Make sure your src block has a :session param."))
                             start (- (point) 1)))
                         (setq start (point))))
      (list (s-trim (buffer-substring-no-properties start end))))))
+
+(defun ob-sage--code-block-markers (&optional pt-p)
+  (let ((markers nil)
+        (mrkr nil))
+    (org-save-outline-visibility t
+      (org-babel-map-executables nil
+        (if pt-p
+            (push (point) markers)
+          (setq mrkr (make-marker))
+          (set-marker mrkr (point))
+          (push mrkr markers))))
+    (nreverse markers)))
+
+
+(defun ob-sage-execute-buffer ()
+  (interactive)
+  (let ((markers (ob-sage--code-block-markers))
+        (buf (current-buffer)))
+    (save-excursion
+      ;; Remove all results in current buffer
+      (dolist (p markers)
+        (goto-char p)
+        (org-babel-remove-result))
+      (ob-sage--execute-makers 0 buf))))
+
+
+(defun ob-sage--execute-makers (num buf)
+  (with-current-buffer buf
+    (let ((pts (ob-sage--code-block-markers t)))
+      (cond ((= (length pts) num) nil)
+            (t (goto-char (nth num pts))
+               (org-babel-sage-ctrl-c-ctrl-c-1)
+               (sage-shell:after-redirect-finished
+                 (ob-sage--execute-makers (1+ num) buf)))))))
 
 (provide 'ob-sage)
 ;;; ob-sage.el ends here
