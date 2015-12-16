@@ -187,8 +187,9 @@ Make sure your src block has a :session param."))
       (cond ((= (length pts) num) nil)
             (t (goto-char (nth num pts))
                (org-babel-sage-ctrl-c-ctrl-c-1)
-               (sage-shell:after-redirect-finished
-                 (ob-sage--execute-makers (1+ num) buf)))))))
+               (sage-shell:after-output-finished
+                 (sage-shell:after-redirect-finished
+                   (ob-sage--execute-makers (1+ num) buf))))))))
 
 (provide 'ob-sage)
 ;;; ob-sage.el ends here
