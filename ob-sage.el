@@ -184,7 +184,8 @@ Make sure your src block has a :session param."))
 (defun ob-sage--execute-makers (num buf)
   (with-current-buffer buf
     (let ((pts (ob-sage--code-block-markers t)))
-      (cond ((= (length pts) num) nil)
+      (cond ((= (length pts) num)
+             (message "Every code block in this buffer has been evaluated."))
             (t (goto-char (nth num pts))
                (org-babel-sage-ctrl-c-ctrl-c-1)
                (sage-shell:after-output-finished
