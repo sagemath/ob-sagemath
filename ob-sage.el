@@ -24,6 +24,7 @@
 (require 'sage-shell-mode)
 (require 'ob-python)
 (require 's)
+(require 'ob-exp)
 (add-to-list 'org-babel-tangle-lang-exts '("sage" . "sage"))
 (defvar org-babel-default-header-args:sage '((:session . t)
                                              (:exports . "both")
