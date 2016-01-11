@@ -65,9 +65,7 @@ Make sure your src block has a :session param."))
   (message "Evaluating code block ..."))
 
 (defun org-babel-sage-execute1 (body params)
-  (let* (
-         ;; (file (cdr (assoc :file params)))
-         (session (cdr (assoc :session params)))
+  (let* ((session (cdr (assoc :session params)))
          (result-type (cdr (assoc :result-type params)))
          (code (org-babel-expand-body:generic
                 (encode-coding-string body 'utf-8)
@@ -108,8 +106,8 @@ Make sure your src block has a :session param."))
                     (org-babel-sage-table-or-string (s-trim result)))))
               (fset 'org-babel-execute:sage-shell
                     (symbol-function 'org-babel-execute:sage)))
-            (save-excursion
-              (with-current-buffer buf
+            (with-current-buffer buf
+              (save-excursion
                 (goto-char marker)
                 (call-interactively #'org-babel-execute-src-block)))))))))
 
@@ -156,17 +154,15 @@ Make sure your src block has a :session param."))
                         (setq start (point))))
      (list (s-trim (buffer-substring-no-properties start end))))))
 
-(defun ob-sage--code-block-markers (&optional pt-p)
+(defun ob-sage--code-block-markers ()
   (let ((markers nil)
         (mrkr nil))
     (org-save-outline-visibility t
       (org-babel-map-executables nil
-        (if pt-p
-            (push (point) markers)
-          (setq mrkr (make-marker))
-          (set-marker mrkr (point))
-          (push mrkr markers))))
-    (nreverse markers)))
+        (setq mrkr (make-marker))
+        (set-marker mrkr (save-excursion (forward-line 1) (point)))
+        (push mrkr markers)))
+    (reverse markers)))
 
 
 (defun ob-sage-execute-buffer ()
@@ -178,19 +174,19 @@ Make sure your src block has a :session param."))
       (dolist (p markers)
         (goto-char p)
         (org-babel-remove-result))
-      (ob-sage--execute-makers 0 buf))))
+      (ob-sage--execute-makers markers buf))))
 
 
-(defun ob-sage--execute-makers (num buf)
-  (with-current-buffer buf
-    (let ((pts (ob-sage--code-block-markers t)))
-      (cond ((= (length pts) num)
-             (message "Every code block in this buffer has been evaluated."))
-            (t (goto-char (nth num pts))
-               (org-babel-sage-ctrl-c-ctrl-c-1)
-               (sage-shell:after-output-finished
-                 (sage-shell:after-redirect-finished
-                   (ob-sage--execute-makers (1+ num) buf))))))))
+(defun ob-sage--execute-makers (markers buf)
+  (cond ((null markers)
+         (message "Every code block in this buffer has been evaluated."))
+        (t (with-current-buffer buf
+             (save-excursion
+               (goto-char (car markers))
+               (org-babel-sage-ctrl-c-ctrl-c-1))
+             (sage-shell:after-output-finished
+               (sage-shell:after-redirect-finished
+                 (ob-sage--execute-makers (cdr markers) buf)))))))
 
 (provide 'ob-sage)
 ;;; ob-sage.el ends here
