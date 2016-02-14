@@ -104,7 +104,7 @@ Make sure your src block has a :session param."))
                                  proc-buf))))
                   (org-babel-result-cond (cdr (assoc :result-params params))
                     result
-                    (org-babel-sage-table-or-string (s-trim result)))))
+                    (org-babel-sage-table-or-string (s-trim result) params))))
               (fset 'org-babel-execute:sage-shell
                     (symbol-function 'org-babel-execute:sage)))
             (with-current-buffer buf
@@ -125,22 +125,25 @@ Make sure your src block has a :session param."))
             (goto-char (point-min))))
         (pop-to-buffer buf)))))
 
-(defun org-babel-sage-table-or-string (res)
+(defun org-babel-sage-table-or-string (res params)
   (with-temp-buffer
     (insert res)
     (goto-char (point-min))
     (cond ((looking-at (rx (or "((" "([" "[(" "[[")))
            (forward-char 1)
-           (with-syntax-table sage-shell-mode-syntax-table
-             (cl-loop while (and (re-search-forward (rx (or "(" "[")) nil t)
-                                 (progn (forward-char -1)
-                                        (not (nth 3 (syntax-ppss)))))
-                      collect
-                      (org-babel-sage-table-or-string--1
-                       (1+ (point))
-                       (progn (forward-list) (1- (point)))))))
+           (let ((res (with-syntax-table sage-shell-mode-syntax-table
+                        (cl-loop while (re-search-forward (rx (or "(" "[")) nil t)
+                                 when (save-excursion (forward-char -1)
+                                                      (not (nth 3 (syntax-ppss))))
+                                 collect
+                                 (org-babel-sage-table-or-string--1
+                                  (point)
+                                  (progn (forward-char -1)
+                                         (forward-list) (1- (point))))))))
+             (cond ((equal (cdr (assoc :colnames params)) "yes")
+                    (append (list (car res) 'hline) (cdr res)))
+                   (t res))))
           (t res))))
-
 
 (defun org-babel-sage-table-or-string--1 (beg end)
   (let ((start beg))
@@ -149,11 +152,20 @@ Make sure your src block has a :session param."))
      (cl-loop while (and (re-search-forward "," end t)
                          (not (nth 3 (syntax-ppss))))
               collect (prog1
-                          (s-trim
-                           (buffer-substring-no-properties
-                            start (- (point) 1)))
+                          (org-babel-sage--string-unqote
+                           (s-trim
+                            (buffer-substring-no-properties
+                             start (- (point) 1))))
                         (setq start (point))))
-     (list (s-trim (buffer-substring-no-properties start end))))))
+     (list (org-babel-sage--string-unqote
+            (s-trim (buffer-substring-no-properties start end)))))))
+
+(defun org-babel-sage--string-unqote (s)
+  (cond ((string-match (rx bol (group (or (1+ "'") (1+ "\""))) (1+ nonl))
+                       s)
+         (let ((ln (length (match-string 1 s))))
+           (substring s ln (- (length s) ln))))
+        (t s)))
 
 (defun ob-sage--code-block-markers ()
   (let ((markers nil)
@@ -164,7 +176,6 @@ Make sure your src block has a :session param."))
         (set-marker mrkr (save-excursion (forward-line 1) (point)))
         (push mrkr markers)))
     (reverse markers)))
-
 
 (defun ob-sage-execute-buffer ()
   (interactive)
