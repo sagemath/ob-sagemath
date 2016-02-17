@@ -161,11 +161,13 @@ Make sure your src block has a :session param."))
             (s-trim (buffer-substring-no-properties start end)))))))
 
 (defun org-babel-sage--string-unqote (s)
-  (cond ((string-match (rx bol (group (or (1+ "'") (1+ "\""))) (1+ nonl))
-                       s)
-         (let ((ln (length (match-string 1 s))))
-           (substring s ln (- (length s) ln))))
-        (t s)))
+  (sage-shell:->>
+   (cond ((string-match (rx bol (group (or (1+ "'") (1+ "\""))) (1+ nonl))
+                        s)
+          (let ((ln (length (match-string 1 s))))
+            (substring s ln (- (length s) ln))))
+         (t s))
+   (s-replace "\\\\" "\\")))
 
 (defun ob-sage--code-block-markers ()
   (let ((markers nil)
