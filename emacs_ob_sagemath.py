@@ -5,17 +5,18 @@ from sage.repl.rich_output import get_display_manager
 from emacs_sage_shell import ip
 
 
-class BackendEmacsBabel(BackendIPythonCommandline):
+class LastState(object):
 
     def __init__(self):
-        self.__emacs_babel_filename = None
-        super(BackendEmacsBabel, self).__init__()
+        # Used for image files
+        self.filename = None
+        # Whether the last evaluation is successful or not.
+        self.success = True
 
-    def _emacs_babel_filename(self):
-        return self.__emacs_babel_filename
+last_state = LastState()
 
-    def _set_emacs_babel_filename(self, filename):
-        self.__emacs_babel_filename = filename
+
+class BackendEmacsBabel(BackendIPythonCommandline):
 
     def _repr_(self):
         return "Emacs babel"
@@ -23,7 +24,7 @@ class BackendEmacsBabel(BackendIPythonCommandline):
     def displayhook(self, plain_text, rich_output):
         if isinstance(rich_output, OutputImagePng):
             msg = rich_output.png.filename(ext='png')
-            babel_filename = self._emacs_babel_filename()
+            babel_filename = last_state.filename
             if babel_filename is not None:
                 rich_output.png.save_as(babel_filename)
                 msg = babel_filename
@@ -36,10 +37,12 @@ backend_ob_sage = BackendEmacsBabel()
 gdm = get_display_manager()
 
 
-def run_cell_babel(code, file_name=None):
-    backend_ob_sage._set_emacs_babel_filename(file_name)
+def run_cell_babel(code, filename=None):
+    last_state.filename = filename
+    last_state.success = True
     prv = gdm.switch_backend(backend_ob_sage, shell=ip)
     try:
-        ip.run_cell(code)
+        res = ip.run_cell(code)
+        last_state.success = res.success
     finally:
         gdm.switch_backend(prv, shell=ip)
