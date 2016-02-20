@@ -32,6 +32,43 @@
 ;;; Do not evaluate code when exporting.
 (setq org-export-babel-evaluate nil)
 
+
+
+(defvar ob-sagemath--python-script-dir
+  (if load-file-name
+      (file-name-directory load-file-name)
+    default-directory))
+
+(defvar ob-sagemath--script-name "_emacs_ob_sagemath")
+
+(defvar ob-sagemath--imported-p nil)
+(make-variable-buffer-local 'ob-sagemath--imported-p)
+
+(defun ob-sagemath--python-name (f)
+  (format "%s.%s" ob-sagemath--script-name f))
+
+(defun ob-sagemath--import-script ()
+  "Assumes `sage-shell:process-buffer' is already set."
+  (sage-shell:with-current-buffer-safe sage-shell:process-buffer
+    (unless ob-sagemath--imported-p
+      (sage-shell:send-command
+       (s-join "; "
+               (list
+                (format "sys.path.append('%s')"
+                        ob-sagemath--python-script-dir)
+                (format "import emacs_ob_sagemath as %s"
+                        ob-sagemath--script-name)))
+       nil nil t)
+      (setq ob-sagemath--imported-p t))))
+
+(defun ob-sagemath--get-success ()
+  (with-current-buffer sage-shell:process-buffer
+    (let ((res (s-trim (sage-shell:send-command-to-string
+                        (ob-sagemath--python-name "last_state.success")))))
+      (cond ((string= res "True") t)
+            ((string= res "False") nil)
+            (t (error "Invalid value of the last state."))))))
+
 ;;;###autoload
 (defun org-babel-sage-ctrl-c-ctrl-c (arg)
   "Execute current src code block. With prefix argument, evaluate all code in a
@@ -78,34 +115,92 @@ Make sure your src block has a :session param."))
 
     (with-current-buffer sage-shell:process-buffer
       (sage-shell:after-output-finished
+        ;; Import a Python script if necessary.
+        (ob-sagemath--import-script)
 
         (let ((output-call-back
-               (sage-shell:send-command (ob-sagemath--code raw-code params)))
+               (sage-shell:send-command (ob-sagemath--code raw-code params buf)))
               (res-params (cdr (assoc :result-params params))))
           (sage-shell:change-mode-line-process t "eval")
           (sage-shell:after-redirect-finished
             (sage-shell:change-mode-line-process nil)
-            (let ((output (funcall output-call-back)))
+            (let ((output (funcall output-call-back))
+                  (success-p (ob-sagemath--get-success)))
               (defun org-babel-execute:sage (_body _params)
-                (let ((result output))
-                  (cond ((member "file" res-params)
-                         (s-trim result))
-                        ((member "table" res-params)
-                         (org-babel-sage-table-or-string (s-trim result) params))
-                        (t result))))
+                (cond (success-p
+                       (let ((result output))
+                         (cond ((member "file" res-params)
+                                (assoc-default :file res-params))
+                               ((member "table" res-params)
+                                (org-babel-sage-table-or-string (s-trim result) params))
+                               (t result))))
+                      ;; Return the empty string when it fails.
+                      (t "")))
               (fset 'org-babel-execute:sage-shell
-                    (symbol-function 'org-babel-execute:sage)))
-            (with-current-buffer buf
-              (save-excursion
-                (goto-char marker)
-                (call-interactively #'org-babel-execute-src-block)))))))))
+                    (symbol-function 'org-babel-execute:sage))
+              (with-current-buffer buf
+                (save-excursion
+                  (goto-char marker)
+                  (call-interactively #'org-babel-execute-src-block)
+                  (unless success-p
+                    (ob-sagemath--failure-callback output)))))))))))
 
-(defun ob-sagemath--code (raw-code params)
-  (format "_ = %s(\"%s\")"
-          (sage-shell:py-mod-func "ip.run_cell")
-          (s-replace-all (list (cons (rx "\n") "\\\\n")
-                               (cons (rx "\"") "\\\\\""))
-                         raw-code)))
+(defvar ob-sagemath-error-buffer-name "*Ob-SageMath-Error*")
+(defvar ob-sagemath--error-regexp
+  (rx symbol-start
+      (or "ArithmeticError" "AssertionError" "AttributeError"
+          "BaseException" "BufferError" "BytesWarning" "DeprecationWarning"
+          "EOFError" "EnvironmentError" "Exception" "FloatingPointError"
+          "FutureWarning" "GeneratorExit" "IOError" "ImportError"
+          "ImportWarning" "IndentationError" "IndexError" "KeyError"
+          "KeyboardInterrupt" "LookupError" "MemoryError" "NameError"
+          "NotImplementedError" "OSError" "OverflowError"
+          "PendingDeprecationWarning" "ReferenceError" "RuntimeError"
+          "RuntimeWarning" "StandardError" "StopIteration" "SyntaxError"
+          "SyntaxWarning" "SystemError" "SystemExit" "TabError" "TypeError"
+          "UnboundLocalError" "UnicodeDecodeError" "UnicodeEncodeError"
+          "UnicodeError" "UnicodeTranslateError" "UnicodeWarning"
+          "UserWarning" "ValueError" "Warning" "ZeroDivisionError")
+      symbol-end))
+
+(defvar ob-sagemath--error-syntax-table
+  (let ((table (make-syntax-table)))
+    (modify-syntax-entry ?\" "w" table)
+    (modify-syntax-entry ?\' "w" table)
+    table))
+
+(define-derived-mode ob-sagemath-error-mode nil "ObSageMathError"
+  "Major mode for display errors."
+  (set-syntax-table ob-sagemath--error-syntax-table)
+  (setq font-lock-defaults
+        (list (list (cons ob-sagemath--error-regexp 'font-lock-warning-face))
+              nil nil nil 'beginning-of-line)))
+
+(defun ob-sagemath--failure-callback (output)
+  (let ((inhibit-read-only t)
+        (view-read-only nil)
+        (buf (get-buffer-create ob-sagemath-error-buffer-name)))
+    (with-current-buffer buf
+      (erase-buffer)
+      (insert output)
+      (ob-sagemath-error-mode)
+      (unless view-mode (view-mode)))
+    (pop-to-buffer buf)
+    (message "An error raised in the SageMath process.")))
+
+
+(defun ob-sagemath--code (raw-code params buf)
+  (let ((code (s-replace-all (list (cons (rx "\"") "\\\\\"")
+                                   (cons (rx "\n") "\\\\n"))
+                             (s-replace "\\" "\\\\" raw-code))))
+    (format "%s(\"%s\", filename=\"%s\")"
+            (ob-sagemath--python-name "run_cell_babel")
+            code
+            (or (with-current-buffer buf
+                  (expand-file-name
+                   (assoc-default :file params)
+                   default-directory))
+                "None"))))
 
 
 (defun ob-sagemath--create-output-buffer (output)
