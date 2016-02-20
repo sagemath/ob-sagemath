@@ -31,7 +31,6 @@
                                              (:results . "output")))
 ;;; Do not evaluate code when exporting.
 (setq org-export-babel-evaluate nil)
-(defvar org-babel-sage--last-res-var "_emacs_ob_sage_var")
 
 ;;;###autoload
 (defun org-babel-sage-ctrl-c-ctrl-c (arg)
@@ -67,7 +66,6 @@ Make sure your src block has a :session param."))
 
 (defun org-babel-sage-execute1 (body params)
   (let* ((session (cdr (assoc :session params)))
-         (result-type (cdr (assoc :result-type params)))
          (raw-code (org-babel-expand-body:generic
                     (encode-coding-string body 'utf-8)
                     params (org-babel-variable-assignments:python params)))
@@ -80,24 +78,16 @@ Make sure your src block has a :session param."))
 
     (with-current-buffer sage-shell:process-buffer
       (sage-shell:after-output-finished
-        (sage-shell:send-command
-         (format "%s = None" org-babel-sage--last-res-var) nil nil t)
 
         (let ((output-call-back
                (sage-shell:send-command (ob-sagemath--code raw-code params)))
-              (proc-buf sage-shell:process-buffer)
               (res-params (cdr (assoc :result-params params))))
           (sage-shell:change-mode-line-process t "eval")
           (sage-shell:after-redirect-finished
             (sage-shell:change-mode-line-process nil)
             (let ((output (funcall output-call-back)))
               (defun org-babel-execute:sage (_body _params)
-                (let ((result (if (eq result-type 'output)
-                                  output
-                                (ob-sagemath--create-output-buffer output)
-                                (sage-shell:send-command-to-string
-                                 org-babel-sage--last-res-var
-                                 proc-buf))))
+                (let ((result output))
                   (cond ((member "file" res-params)
                          (s-trim result))
                         ((member "table" res-params)
@@ -111,8 +101,7 @@ Make sure your src block has a :session param."))
                 (call-interactively #'org-babel-execute-src-block)))))))))
 
 (defun ob-sagemath--code (raw-code params)
-  (format "%s = %s(\"%s\")"
-          org-babel-sage--last-res-var
+  (format "_ = %s(\"%s\")"
           (sage-shell:py-mod-func "ip.run_cell")
           (s-replace-all (list (cons (rx "\n") "\\\\n")
                                (cons (rx "\"") "\\\\\""))
