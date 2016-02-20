@@ -68,9 +68,9 @@ Make sure your src block has a :session param."))
 (defun org-babel-sage-execute1 (body params)
   (let* ((session (cdr (assoc :session params)))
          (result-type (cdr (assoc :result-type params)))
-         (code (org-babel-expand-body:generic
-                (encode-coding-string body 'utf-8)
-                params (org-babel-variable-assignments:python params)))
+         (raw-code (org-babel-expand-body:generic
+                    (encode-coding-string body 'utf-8)
+                    params (org-babel-variable-assignments:python params)))
          (pt (point))
          (buf (current-buffer))
          (marker (make-marker))
@@ -84,13 +84,9 @@ Make sure your src block has a :session param."))
          (format "%s = None" org-babel-sage--last-res-var) nil nil t)
 
         (let ((output-call-back
-               (sage-shell:send-command
-                (format "%s = %s(\"%s\")"
-                        org-babel-sage--last-res-var
-                        (sage-shell:py-mod-func "ip.run_cell")
-                        (s-replace-all (list (cons (rx "\n") "\\\\n")
-                                             (cons (rx "\"") "\\\\\"")) code))))
-              (proc-buf sage-shell:process-buffer))
+               (sage-shell:send-command (ob-sage--code raw-code params)))
+              (proc-buf sage-shell:process-buffer)
+              (res-params (cdr (assoc :result-params params))))
           (sage-shell:change-mode-line-process t "eval")
           (sage-shell:after-redirect-finished
             (sage-shell:change-mode-line-process nil)
@@ -102,15 +98,25 @@ Make sure your src block has a :session param."))
                                 (sage-shell:send-command-to-string
                                  org-babel-sage--last-res-var
                                  proc-buf))))
-                  (org-babel-result-cond (cdr (assoc :result-params params))
-                    result
-                    (org-babel-sage-table-or-string (s-trim result) params))))
+                  (cond ((member "file" res-params)
+                         (s-trim result))
+                        ((member "table" res-params)
+                         (org-babel-sage-table-or-string (s-trim result) params))
+                        (t result))))
               (fset 'org-babel-execute:sage-shell
                     (symbol-function 'org-babel-execute:sage)))
             (with-current-buffer buf
               (save-excursion
                 (goto-char marker)
                 (call-interactively #'org-babel-execute-src-block)))))))))
+
+(defun ob-sage--code (raw-code params)
+  (format "%s = %s(\"%s\")"
+          org-babel-sage--last-res-var
+          (sage-shell:py-mod-func "ip.run_cell")
+          (s-replace-all (list (cons (rx "\n") "\\\\n")
+                               (cons (rx "\"") "\\\\\""))
+                         raw-code)))
 
 
 (defun ob-sage--create-output-buffer (output)
