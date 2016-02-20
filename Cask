@@ -2,4 +2,4 @@
 (source gnu)
 (source melpa)
 
-(package-file "ob-sage.el")
+(package-file "ob-sagemath.el")
