@@ -1,6 +1,6 @@
 ;;; ob-sage.el --- org-babel functions for SageMath -*- lexical-binding: t -*-
 
-;; Package-Requires: ((sage-shell-mode "0.0.8") (s "1.10.0"))
+;; Package-Requires: ((sage-shell-mode "0.0.8") (s "1.8.0"))
 ;; Version: 0.1
 ;;; License:
 
