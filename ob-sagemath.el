@@ -196,11 +196,10 @@ Make sure your src block has a :session param."))
     (format "%s(\"%s\", filename=\"%s\")"
             (ob-sagemath--python-name "run_cell_babel")
             code
-            (or (with-current-buffer buf
-                  (expand-file-name
-                   (assoc-default :file params)
-                   default-directory))
-                "None"))))
+            (sage-shell:aif (assoc-default :file params)
+                (with-current-buffer buf
+                  (expand-file-name it default-directory))
+              "None"))))
 
 
 (defun ob-sagemath--create-output-buffer (output)
