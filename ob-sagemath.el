@@ -1,4 +1,4 @@
-;;; ob-sage.el --- org-babel functions for SageMath -*- lexical-binding: t -*-
+;;; ob-sagemath.el --- org-babel functions for SageMath -*- lexical-binding: t -*-
 
 ;; Package-Requires: ((sage-shell-mode "0.0.8") (s "1.8.0"))
 ;; Version: 0.1
@@ -40,7 +40,7 @@ buffer."
   (interactive "p")
   (case arg
     (1 (org-babel-sage-ctrl-c-ctrl-c-1))
-    (4 (ob-sage-execute-buffer))))
+    (4 (ob-sagemath-execute-buffer))))
 
 (defun org-babel-sage-ctrl-c-ctrl-c-1 ()
   (let* ((info (org-babel-get-src-block-info))
@@ -53,7 +53,7 @@ buffer."
 
 (defun org-babel-sage--init (session)
   (cond ((string= session "none")
-         (error "ob-sage currently only supports evaluation using a session.
+         (error "ob-sagemath currently only supports evaluation using a session.
 Make sure your src block has a :session param."))
         ((stringp session)
          (setq sage-shell:process-buffer
@@ -84,7 +84,7 @@ Make sure your src block has a :session param."))
          (format "%s = None" org-babel-sage--last-res-var) nil nil t)
 
         (let ((output-call-back
-               (sage-shell:send-command (ob-sage--code raw-code params)))
+               (sage-shell:send-command (ob-sagemath--code raw-code params)))
               (proc-buf sage-shell:process-buffer)
               (res-params (cdr (assoc :result-params params))))
           (sage-shell:change-mode-line-process t "eval")
@@ -94,7 +94,7 @@ Make sure your src block has a :session param."))
               (defun org-babel-execute:sage (_body _params)
                 (let ((result (if (eq result-type 'output)
                                   output
-                                (ob-sage--create-output-buffer output)
+                                (ob-sagemath--create-output-buffer output)
                                 (sage-shell:send-command-to-string
                                  org-babel-sage--last-res-var
                                  proc-buf))))
@@ -110,7 +110,7 @@ Make sure your src block has a :session param."))
                 (goto-char marker)
                 (call-interactively #'org-babel-execute-src-block)))))))))
 
-(defun ob-sage--code (raw-code params)
+(defun ob-sagemath--code (raw-code params)
   (format "%s = %s(\"%s\")"
           org-babel-sage--last-res-var
           (sage-shell:py-mod-func "ip.run_cell")
@@ -119,10 +119,10 @@ Make sure your src block has a :session param."))
                          raw-code)))
 
 
-(defun ob-sage--create-output-buffer (output)
+(defun ob-sagemath--create-output-buffer (output)
   (unless (s-blank? output)
     (save-excursion
-      (let ((buf (get-buffer-create "*ob-sage-output*")))
+      (let ((buf (get-buffer-create "*ob-sagemath-output*")))
         (with-current-buffer buf
           (special-mode)
           (let ((inhibit-read-only t))
@@ -175,7 +175,7 @@ Make sure your src block has a :session param."))
          (t s))
    (s-replace "\\\\" "\\")))
 
-(defun ob-sage--code-block-markers ()
+(defun ob-sagemath--code-block-markers ()
   (let ((markers nil)
         (mrkr nil))
     (org-save-outline-visibility t
@@ -185,19 +185,19 @@ Make sure your src block has a :session param."))
         (push mrkr markers)))
     (reverse markers)))
 
-(defun ob-sage-execute-buffer ()
+(defun ob-sagemath-execute-buffer ()
   (interactive)
-  (let ((markers (ob-sage--code-block-markers))
+  (let ((markers (ob-sagemath--code-block-markers))
         (buf (current-buffer)))
     (save-excursion
       ;; Remove all results in current buffer
       (dolist (p markers)
         (goto-char p)
         (org-babel-remove-result))
-      (ob-sage--execute-makers markers buf))))
+      (ob-sagemath--execute-makers markers buf))))
 
 
-(defun ob-sage--execute-makers (markers buf)
+(defun ob-sagemath--execute-makers (markers buf)
   (cond ((null markers)
          (message "Every code block in this buffer has been evaluated."))
         (t (with-current-buffer buf
@@ -206,7 +206,7 @@ Make sure your src block has a :session param."))
                (org-babel-sage-ctrl-c-ctrl-c-1))
              (sage-shell:after-output-finished
                (sage-shell:after-redirect-finished
-                 (ob-sage--execute-makers (cdr markers) buf)))))))
+                 (ob-sagemath--execute-makers (cdr markers) buf)))))))
 
-(provide 'ob-sage)
-;;; ob-sage.el ends here
+(provide 'ob-sagemath)
+;;; ob-sagemath.el ends here
