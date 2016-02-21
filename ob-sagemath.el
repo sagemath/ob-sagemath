@@ -193,12 +193,13 @@ Make sure your src block has a :session param."))
   (let ((code (s-replace-all (list (cons (rx "\"") "\\\\\"")
                                    (cons (rx "\n") "\\\\n"))
                              (s-replace "\\" "\\\\" raw-code))))
-    (format "%s(\"%s\", filename=\"%s\")"
+    (format "%s(\"%s\", filename=%s)"
             (ob-sagemath--python-name "run_cell_babel")
             code
             (sage-shell:aif (assoc-default :file params)
-                (with-current-buffer buf
-                  (expand-file-name it default-directory))
+                (format "\"%s\""
+                        (with-current-buffer buf
+                          (expand-file-name it default-directory)))
               "None"))))
 
 
