@@ -61,13 +61,16 @@
        nil nil t)
       (setq ob-sagemath--imported-p t))))
 
+(defvar ob-sagemath--last-success-state t)
+
 (defun ob-sagemath--success (output)
   (let ((s (substring-no-properties output -2 -1)))
-    (cond ((string= s "1")
-           t)
-          ((string= s "0")
-           nil)
-          (t (error "Invalid output.")))))
+    (setq ob-sagemath--last-success-state
+          (cond ((string= s "1")
+                 t)
+                ((string= s "0")
+                 nil)
+                (t (error "Invalid output."))))))
 
 (defun ob-sagemath--result (output)
   (substring-no-properties output 0 -2))
@@ -275,6 +278,7 @@ Make sure your src block has a :session param."))
 
 (defun ob-sagemath-execute-buffer ()
   (interactive)
+  (setq ob-sagemath--last-success-state t)
   (let ((markers (ob-sagemath--code-block-markers))
         (buf (current-buffer)))
     (save-excursion
@@ -288,13 +292,15 @@ Make sure your src block has a :session param."))
 (defun ob-sagemath--execute-makers (markers buf)
   (cond ((null markers)
          (message "Every code block in this buffer has been evaluated."))
-        (t (with-current-buffer buf
-             (save-excursion
-               (goto-char (car markers))
-               (org-babel-sage-ctrl-c-ctrl-c-1))
-             (sage-shell:after-output-finished
-               (sage-shell:after-redirect-finished
-                 (ob-sagemath--execute-makers (cdr markers) buf)))))))
+        (ob-sagemath--last-success-state
+         (with-current-buffer buf
+           (save-excursion
+             (goto-char (car markers))
+             (org-babel-sage-ctrl-c-ctrl-c-1))
+           (sage-shell:after-output-finished
+             (sage-shell:after-redirect-finished
+               (ob-sagemath--execute-makers (cdr markers) buf)))))
+        (t (setq ob-sagemath--last-success-state t))))
 
 (provide 'ob-sagemath)
 ;;; ob-sagemath.el ends here
