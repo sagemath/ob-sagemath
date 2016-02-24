@@ -61,13 +61,16 @@
        nil nil t)
       (setq ob-sagemath--imported-p t))))
 
-(defun ob-sagemath--get-success ()
-  (with-current-buffer sage-shell:process-buffer
-    (let ((res (s-trim (sage-shell:send-command-to-string
-                        (ob-sagemath--python-name "last_state.success")))))
-      (cond ((string= res "True") t)
-            ((string= res "False") nil)
-            (t (error "Invalid value of the last state."))))))
+(defun ob-sagemath--success (output)
+  (let ((s (substring-no-properties output -2 -1)))
+    (cond ((string= s "1")
+           t)
+          ((string= s "0")
+           nil)
+          (t (error "Invalid output.")))))
+
+(defun ob-sagemath--result (output)
+  (substring-no-properties output 0 -2))
 
 ;;;###autoload
 (defun org-babel-sage-ctrl-c-ctrl-c (arg)
@@ -124,17 +127,17 @@ Make sure your src block has a :session param."))
           (sage-shell:change-mode-line-process t "eval")
           (sage-shell:after-redirect-finished
             (sage-shell:change-mode-line-process nil)
-            (let ((output (funcall output-call-back))
-                  (success-p (ob-sagemath--get-success)))
+            (let* ((output (funcall output-call-back))
+                   (success-p (ob-sagemath--success output))
+                   (result (ob-sagemath--result output)))
               (defun org-babel-execute:sage (_body _params)
                 (cond (success-p
-                       (let ((result output))
-                         (cond ((assq :file params) nil)
-                               ((member "file" res-params)
-                                (s-trim result))
-                               ((member "table" res-params)
-                                (org-babel-sage-table-or-string (s-trim result) params))
-                               (t result))))
+                       (cond ((assq :file params) nil)
+                             ((member "file" res-params)
+                              (s-trim result))
+                             ((member "table" res-params)
+                              (org-babel-sage-table-or-string (s-trim result) params))
+                             (t result)))
                       ;; Return the empty string when it fails.
                       (t "")))
               (fset 'org-babel-execute:sage-shell
@@ -144,7 +147,7 @@ Make sure your src block has a :session param."))
                   (goto-char marker)
                   (call-interactively #'org-babel-execute-src-block)
                   (unless success-p
-                    (ob-sagemath--failure-callback output)))))))))))
+                    (ob-sagemath--failure-callback result)))))))))))
 
 (defvar ob-sagemath-error-buffer-name "*Ob-SageMath-Error*")
 (defvar ob-sagemath--error-regexp
