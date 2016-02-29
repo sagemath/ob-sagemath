@@ -135,15 +135,18 @@ Make sure your src block has a :session param."))
           (save-excursion
             (goto-char marker)
             (call-interactively #'org-babel-execute-src-block)
-            (ob-sagemath--exec-callback res-info))))
+            (ob-sagemath--exec-callback res-info params))))
     (fset 'org-babel-execute:sage #'ob-sagemath--execute-sync)))
 
-(defun ob-sagemath--exec-callback (res-info)
+(defun ob-sagemath--exec-callback (res-info params)
   (let ((success-p (ob-sagemath--res-info-success res-info))
         (result (ob-sagemath--res-info-result res-info))
         (output (ob-sagemath--res-info-output res-info)))
     (unless success-p
-      (ob-sagemath--failure-callback result))
+      (ob-sagemath--failure-callback
+       (cond ((member "value" (assoc-default :result-params params))
+              output)
+             (t result))))
     (when (and output (not (string= output "")))
       (ob-sagemath--make-output-buffer output))))
 
@@ -168,7 +171,7 @@ Make sure your src block has a :session param."))
    :callback (lambda (res-info)
                (prog1
                    (ob-sagemath--res-info-to-result res-info params)
-                 (ob-sagemath--exec-callback res-info)))))
+                 (ob-sagemath--exec-callback res-info params)))))
 
 (defun org-babel-execute:sage (body params)
   (ob-sagemath--execute-sync body params))
