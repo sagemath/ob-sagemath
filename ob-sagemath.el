@@ -83,24 +83,24 @@
               :result out-str)))))
 
 ;;;###autoload
-(defun org-babel-sage-ctrl-c-ctrl-c (arg)
+(defun ob-sagemath-ctrl-c-ctrl-c (arg)
   "Execute current src code block. With prefix argument, evaluate all code in a
 buffer."
   (interactive "p")
   (case arg
-    (1 (org-babel-sage-ctrl-c-ctrl-c-1))
+    (1 (ob-sagemath-ctrl-c-ctrl-c-1))
     (4 (ob-sagemath-execute-buffer))))
 
-(defun org-babel-sage-ctrl-c-ctrl-c-1 ()
+(defun ob-sagemath-ctrl-c-ctrl-c-1 ()
   (let* ((info (org-babel-get-src-block-info))
-           (language (car info))
-           (body (nth 1 info))
-           (params (nth 2 info)))
-      (if (member language '("sage" "sage-shell"))
-          (ob-sagemath--execute1 body params)
-        (call-interactively #'org-ctrl-c-ctrl-c))))
+         (language (car info))
+         (body (nth 1 info))
+         (params (nth 2 info)))
+    (if (member language '("sage" "sage-shell"))
+        (ob-sagemath--execute1 body params)
+      (call-interactively #'org-ctrl-c-ctrl-c))))
 
-(defun org-babel-sage--init (session)
+(defun ob-sagemath--init (session)
   (cond ((string= session "none")
          (error "ob-sagemath currently only supports evaluation using a session.
 Make sure your src block has a :session param."))
@@ -136,7 +136,7 @@ Make sure your src block has a :session param."))
                    ((member "file" res-params)
                     (s-trim result))
                    ((member "table" res-params)
-                    (org-babel-sage-table-or-string (s-trim result) params))
+                    (ob-sagemath-table-or-string (s-trim result) params))
                    (t result)))
             ;; Return the empty string when it fails.
             (t "")))
@@ -160,7 +160,7 @@ Make sure your src block has a :session param."))
                    params (org-babel-variable-assignments:python params)))
         (buf (current-buffer)))
 
-    (org-babel-sage--init session)
+    (ob-sagemath--init session)
 
     (when sync
       (while (not (sage-shell:output-finished-p))
@@ -256,7 +256,7 @@ Make sure your src block has a :session param."))
                 (expand-file-name it default-directory)))
     "None"))
 
-(defun org-babel-sage-table-or-string (res params)
+(defun ob-sagemath-table-or-string (res params)
   (with-temp-buffer
     (insert res)
     (goto-char (point-min))
@@ -267,7 +267,7 @@ Make sure your src block has a :session param."))
                                  when (save-excursion (forward-char -1)
                                                       (not (nth 3 (syntax-ppss))))
                                  collect
-                                 (org-babel-sage-table-or-string--1
+                                 (ob-sagemath-table-or-string--1
                                   (point)
                                   (progn (forward-char -1)
                                          (forward-list) (1- (point))))))))
@@ -276,22 +276,22 @@ Make sure your src block has a :session param."))
                    (t res))))
           (t res))))
 
-(defun org-babel-sage-table-or-string--1 (beg end)
+(defun ob-sagemath-table-or-string--1 (beg end)
   (let ((start beg))
     (goto-char beg)
     (append
      (cl-loop while (and (re-search-forward "," end t)
                          (not (nth 3 (syntax-ppss))))
               collect (prog1
-                          (org-babel-sage--string-unqote
+                          (ob-sagemath--string-unqote
                            (s-trim
                             (buffer-substring-no-properties
                              start (- (point) 1))))
                         (setq start (point))))
-     (list (org-babel-sage--string-unqote
+     (list (ob-sagemath--string-unqote
             (s-trim (buffer-substring-no-properties start end)))))))
 
-(defun org-babel-sage--string-unqote (s)
+(defun ob-sagemath--string-unqote (s)
   (sage-shell:->>
    (cond ((string-match (rx bol (group (or (1+ "'") (1+ "\""))) (1+ nonl))
                         s)
@@ -328,7 +328,7 @@ Make sure your src block has a :session param."))
         (t (with-current-buffer buf
              (save-excursion
                (goto-char (car markers))
-               (org-babel-sage-ctrl-c-ctrl-c-1))
+               (ob-sagemath-ctrl-c-ctrl-c-1))
              (sage-shell:after-output-finished
                (sage-shell:after-redirect-finished
                  (ob-sagemath--execute-makers (cdr markers) buf)))))))
