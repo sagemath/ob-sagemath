@@ -61,26 +61,6 @@
        nil nil t)
       (setq ob-sagemath--imported-p t))))
 
-(defun ob-sagemath--write-code-to-temp-file (code &optional ext)
-  (let ((file (sage-shell-edit:temp-file (or ext "sage"))))
-    (with-temp-buffer
-      (insert sage-shell-edit:temp-file-header)
-      (insert code)
-      (write-region nil nil file nil 'nomsg))
-    file))
-
-(defun ob-sagemath--success (output)
-  (let ((s (substring-no-properties output -2 -1)))
-    (cond ((string= s "1")
-           t)
-          ((string= s "0")
-           nil)
-          (t (error "Invalid output.")))))
-
-(defun ob-sagemath--result (output res-params)
-  (cond ((member "value" res-params))
-        (t (substring-no-properties output 0 -2))))
-
 (cl-defstruct ob-sagemath--res-info
   result success output)
 
@@ -252,18 +232,6 @@ Make sure your src block has a :session param."))
               (with-current-buffer buf
                 (expand-file-name it default-directory)))
     "None"))
-
-(defun ob-sagemath--create-output-buffer (output)
-  (unless (s-blank? output)
-    (save-excursion
-      (let ((buf (get-buffer-create "*ob-sagemath-output*")))
-        (with-current-buffer buf
-          (special-mode)
-          (let ((inhibit-read-only t))
-            (erase-buffer)
-            (insert output)
-            (goto-char (point-min))))
-        (pop-to-buffer buf)))))
 
 (defun org-babel-sage-table-or-string (res params)
   (with-temp-buffer
