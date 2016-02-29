@@ -319,10 +319,10 @@ Make sure your src block has a :session param."))
       (dolist (p markers)
         (goto-char p)
         (org-babel-remove-result))
-      (ob-sagemath--execute-makers markers buf))))
+      (ob-sagemath--execute-markers markers buf))))
 
 
-(defun ob-sagemath--execute-makers (markers buf)
+(defun ob-sagemath--execute-markers (markers buf)
   (cond ((null markers)
          (message "Every code block in this buffer has been evaluated."))
         (t (with-current-buffer buf
@@ -331,7 +331,7 @@ Make sure your src block has a :session param."))
                (ob-sagemath-ctrl-c-ctrl-c-1))
              (sage-shell:after-output-finished
                (sage-shell:after-redirect-finished
-                 (ob-sagemath--execute-makers (cdr markers) buf)))))))
+                 (ob-sagemath--execute-markers (cdr markers) buf)))))))
 
 (provide 'ob-sagemath)
 ;;; ob-sagemath.el ends here
