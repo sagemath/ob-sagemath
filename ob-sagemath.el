@@ -97,7 +97,7 @@ buffer."
            (body (nth 1 info))
            (params (nth 2 info)))
       (if (member language '("sage" "sage-shell"))
-          (org-babel-sage-execute1 body params)
+          (ob-sagemath--execute1 body params)
         (call-interactively #'org-ctrl-c-ctrl-c))))
 
 (defun org-babel-sage--init (session)
@@ -114,7 +114,7 @@ Make sure your src block has a :session param."))
   (org-babel-remove-result)
   (message "Evaluating code block ..."))
 
-(defun org-babel-sage-execute1 (body params)
+(defun ob-sagemath--execute1 (body params)
   (let* ((pt (point))
          (buf (current-buffer))
          (marker (make-marker))
