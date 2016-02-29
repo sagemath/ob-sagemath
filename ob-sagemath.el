@@ -115,53 +115,76 @@ Make sure your src block has a :session param."))
   (message "Evaluating code block ..."))
 
 (defun org-babel-sage-execute1 (body params)
-  (let* ((session (cdr (assoc :session params)))
-         (raw-code (org-babel-expand-body:generic
-                    (encode-coding-string body 'utf-8)
-                    params (org-babel-variable-assignments:python params)))
-         (pt (point))
+  (let* ((pt (point))
          (buf (current-buffer))
          (marker (make-marker))
          (marker (set-marker marker pt)))
+    (ob-sagemath--eval
+     body params
+     :callback (lambda (res-info)
+                 (ob-sagemath--define-exec-sage-async
+                  res-info params buf marker)))))
+
+(defun ob-sagemath--define-exec-sage-async (res-info params buf marker)
+  (let* ((success-p (ob-sagemath--res-info-success res-info))
+         (result (ob-sagemath--res-info-result res-info))
+         (output (ob-sagemath--res-info-output res-info))
+         (res-params (assoc-default :result-params params)))
+    (defun org-babel-execute:sage (_body _params)
+      (cond (success-p
+             (cond ((assq :file params) nil)
+                   ((member "file" res-params)
+                    (s-trim result))
+                   ((member "table" res-params)
+                    (org-babel-sage-table-or-string (s-trim result) params))
+                   (t result)))
+            ;; Return the empty string when it fails.
+            (t "")))
+    (fset 'org-babel-execute:sage-shell
+          (symbol-function 'org-babel-execute:sage))
+    (with-current-buffer buf
+      (save-excursion
+        (goto-char marker)
+        (call-interactively #'org-babel-execute-src-block)
+        (unless success-p
+          (ob-sagemath--failure-callback result))
+        (when (and output (not (string= output "")))
+          (ob-sagemath--make-output-buffer output))))))
+
+
+(cl-defun ob-sagemath--eval (body params &key sync callback)
+  "CALLBACK will be called when evaluation is done with argument RES-INFO."
+  (let ((session (cdr (assoc :session params)))
+        (raw-code (org-babel-expand-body:generic
+                   (encode-coding-string body 'utf-8)
+                   params (org-babel-variable-assignments:python params)))
+        (buf (current-buffer)))
 
     (org-babel-sage--init session)
+
+    (when sync
+      (while (not (sage-shell:output-finished-p))
+        (accept-process-output
+         (get-buffer-process sage-shell:process-buffer) 0.3)
+        (sleep-for 0.3)))
 
     (with-current-buffer sage-shell:process-buffer
       (sage-shell:after-output-finished
         ;; Import a Python script if necessary.
         (ob-sagemath--import-script)
 
-        (let ((output-call-back
-               (sage-shell:send-command (ob-sagemath--code raw-code params buf)))
+        (let ((output-call-back (sage-shell:send-command
+                                 (ob-sagemath--code raw-code params buf)
+                                 nil nil sync))
               (res-params (cdr (assoc :result-params params))))
-          (sage-shell:change-mode-line-process t "eval")
+          (unless sync
+            (sage-shell:change-mode-line-process t "eval"))
           (sage-shell:after-redirect-finished
-            (sage-shell:change-mode-line-process nil)
-            (let* ((raw-output (funcall output-call-back))
-                   (res-info (ob-sagemath--last-res-info raw-output res-params))
-                   (success-p (ob-sagemath--res-info-success res-info))
-                   (result (ob-sagemath--res-info-result res-info))
-                   (output (ob-sagemath--res-info-output res-info)))
-              (defun org-babel-execute:sage (_body _params)
-                (cond (success-p
-                       (cond ((assq :file params) nil)
-                             ((member "file" res-params)
-                              (s-trim result))
-                             ((member "table" res-params)
-                              (org-babel-sage-table-or-string (s-trim result) params))
-                             (t result)))
-                      ;; Return the empty string when it fails.
-                      (t "")))
-              (fset 'org-babel-execute:sage-shell
-                    (symbol-function 'org-babel-execute:sage))
-              (with-current-buffer buf
-                (save-excursion
-                  (goto-char marker)
-                  (call-interactively #'org-babel-execute-src-block)
-                  (unless success-p
-                    (ob-sagemath--failure-callback result))
-                  (when (and output (not (string= output "")))
-                    (ob-sagemath--make-output-buffer output)))))))))))
+            (unless sync
+              (sage-shell:change-mode-line-process nil))
+            (let* ((raw-output (sage-shell:get-value output-call-back))
+                   (res-info (ob-sagemath--last-res-info raw-output res-params)))
+              (funcall callback res-info))))))))
 
 
 (defvar ob-sagemath-output-buffer-name "*Ob-SageMath-Output*")
