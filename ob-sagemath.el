@@ -100,7 +100,7 @@ buffer."
         (ob-sagemath--execute1 body params)
       (call-interactively #'org-ctrl-c-ctrl-c))))
 
-(defun ob-sagemath--init (session)
+(defun ob-sagemath--init (session sync)
   (cond ((string= session "none")
          (error "ob-sagemath currently only supports evaluation using a session.
 Make sure your src block has a :session param."))
@@ -111,8 +111,9 @@ Make sure your src block has a :session param."))
         (t (setq sage-shell:process-buffer
                  (sage-shell:run "sage" nil 'no-switch))))
 
-  (org-babel-remove-result)
-  (message "Evaluating code block ..."))
+  (unless sync
+    (org-babel-remove-result)
+    (message "Evaluating code block ...")))
 
 (defun ob-sagemath--execute1 (body params)
   (let* ((pt (point))
@@ -126,31 +127,51 @@ Make sure your src block has a :session param."))
                   res-info params buf marker)))))
 
 (defun ob-sagemath--define-exec-sage-async (res-info params buf marker)
-  (let* ((success-p (ob-sagemath--res-info-success res-info))
-         (result (ob-sagemath--res-info-result res-info))
-         (output (ob-sagemath--res-info-output res-info))
-         (res-params (assoc-default :result-params params)))
-    (defun org-babel-execute:sage (_body _params)
-      (cond (success-p
-             (cond ((assq :file params) nil)
-                   ((member "file" res-params)
-                    (s-trim result))
-                   ((member "table" res-params)
-                    (ob-sagemath-table-or-string (s-trim result) params))
-                   (t result)))
-            ;; Return the empty string when it fails.
-            (t "")))
-    (fset 'org-babel-execute:sage-shell
-          (symbol-function 'org-babel-execute:sage))
-    (with-current-buffer buf
-      (save-excursion
-        (goto-char marker)
-        (call-interactively #'org-babel-execute-src-block)
-        (unless success-p
-          (ob-sagemath--failure-callback result))
-        (when (and output (not (string= output "")))
-          (ob-sagemath--make-output-buffer output))))))
+  (unwind-protect
+      (progn
+        (defun org-babel-execute:sage (_body _params)
+          (ob-sagemath--res-info-to-result res-info params))
+        (with-current-buffer buf
+          (save-excursion
+            (goto-char marker)
+            (call-interactively #'org-babel-execute-src-block)
+            (ob-sagemath--exec-callback res-info))))
+    (fset 'org-babel-execute:sage #'ob-sagemath--execute-sync)))
 
+(defun ob-sagemath--exec-callback (res-info)
+  (let ((success-p (ob-sagemath--res-info-success res-info))
+        (result (ob-sagemath--res-info-result res-info))
+        (output (ob-sagemath--res-info-output res-info)))
+    (unless success-p
+      (ob-sagemath--failure-callback result))
+    (when (and output (not (string= output "")))
+      (ob-sagemath--make-output-buffer output))))
+
+(defun ob-sagemath--res-info-to-result (res-info params)
+  (let ((success-p (ob-sagemath--res-info-success res-info))
+        (result (ob-sagemath--res-info-result res-info))
+        (res-params (assoc-default :result-params params)))
+    (cond (success-p
+           (cond ((assq :file params) nil)
+                 ((member "file" res-params)
+                  (s-trim result))
+                 ((member "table" res-params)
+                  (ob-sagemath-table-or-string (s-trim result) params))
+                 (t result)))
+          ;; Return the empty string when it fails.
+          (t ""))))
+
+(defun ob-sagemath--execute-sync (body params)
+  (ob-sagemath--eval
+   body params
+   :sync t
+   :callback (lambda (res-info)
+               (prog1
+                   (ob-sagemath--res-info-to-result res-info params)
+                 (ob-sagemath--exec-callback res-info)))))
+
+(defun org-babel-execute:sage (body params)
+  (ob-sagemath--execute-sync body params))
 
 (cl-defun ob-sagemath--eval (body params &key sync callback)
   "CALLBACK will be called when evaluation is done with argument RES-INFO."
@@ -158,9 +179,10 @@ Make sure your src block has a :session param."))
         (raw-code (org-babel-expand-body:generic
                    (encode-coding-string body 'utf-8)
                    params (org-babel-variable-assignments:python params)))
-        (buf (current-buffer)))
+        (buf (current-buffer))
+        (res-params (cdr (assoc :result-params params))))
 
-    (ob-sagemath--init session)
+    (ob-sagemath--init session sync)
 
     (when sync
       (while (not (sage-shell:output-finished-p))
@@ -169,22 +191,24 @@ Make sure your src block has a :session param."))
         (sleep-for 0.3)))
 
     (with-current-buffer sage-shell:process-buffer
-      (sage-shell:after-output-finished
-        ;; Import a Python script if necessary.
-        (ob-sagemath--import-script)
+      (cond
+       (sync (ob-sagemath--import-script)
+             (let* ((raw-output (sage-shell:send-command-to-string
+                                  (ob-sagemath--code raw-code params buf)))
+                    (res-info (ob-sagemath--last-res-info raw-output res-params)))
+               (funcall callback res-info)))
+       (t (sage-shell:after-output-finished
+            ;; Import a Python script if necessary.
+            (ob-sagemath--import-script)
 
-        (let ((output-call-back (sage-shell:send-command
-                                 (ob-sagemath--code raw-code params buf)
-                                 nil nil sync))
-              (res-params (cdr (assoc :result-params params))))
-          (unless sync
-            (sage-shell:change-mode-line-process t "eval"))
-          (sage-shell:after-redirect-finished
-            (unless sync
-              (sage-shell:change-mode-line-process nil))
-            (let* ((raw-output (sage-shell:get-value output-call-back))
-                   (res-info (ob-sagemath--last-res-info raw-output res-params)))
-              (funcall callback res-info))))))))
+            (let ((output-call-back (sage-shell:send-command
+                                     (ob-sagemath--code raw-code params buf))))
+              (sage-shell:change-mode-line-process t "eval")
+              (sage-shell:after-redirect-finished
+                (sage-shell:change-mode-line-process nil)
+                (let* ((raw-output (sage-shell:get-value output-call-back))
+                       (res-info (ob-sagemath--last-res-info raw-output res-params)))
+                  (funcall callback res-info))))))))))
 
 
 (defvar ob-sagemath-output-buffer-name "*Ob-SageMath-Output*")
