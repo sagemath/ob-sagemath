@@ -10,6 +10,7 @@ class LastState(object):
     def __init__(self):
         # Used for image files
         self.filename = None
+        self.result = None
 
 last_state = LastState()
 
@@ -37,12 +38,18 @@ gdm = get_display_manager()
 
 def run_cell_babel(code, filename=None):
     last_state.filename = filename
+    last_state.result = None
     prv = gdm.switch_backend(backend_ob_sage, shell=ip)
     try:
         res = ip.run_cell(code)
         if res.success:
+            last_state.result = res.result
             print 1
         else:
             print 0
     finally:
         gdm.switch_backend(prv, shell=ip)
+
+
+def print_last_result():
+    print last_state.result

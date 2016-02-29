@@ -61,6 +61,14 @@
        nil nil t)
       (setq ob-sagemath--imported-p t))))
 
+(defun ob-sagemath--write-code-to-temp-file (code &optional ext)
+  (let ((file (sage-shell-edit:temp-file (or ext "sage"))))
+    (with-temp-buffer
+      (insert sage-shell-edit:temp-file-header)
+      (insert code)
+      (write-region nil nil file nil 'nomsg))
+    file))
+
 (defun ob-sagemath--success (output)
   (let ((s (substring-no-properties output -2 -1)))
     (cond ((string= s "1")
@@ -69,8 +77,30 @@
            nil)
           (t (error "Invalid output.")))))
 
-(defun ob-sagemath--result (output)
-  (substring-no-properties output 0 -2))
+(defun ob-sagemath--result (output res-params)
+  (cond ((member "value" res-params))
+        (t (substring-no-properties output 0 -2))))
+
+(cl-defstruct ob-sagemath--res-info
+  result success output)
+
+(defun ob-sagemath--last-res-info (output res-params)
+  (let* ((suc-str (substring-no-properties output -2 -1))
+         (out-str (substring-no-properties output 0 -2))
+         (success (cond ((string= suc-str "1")
+                         t)
+                        ((string= suc-str "0")
+                         nil)
+                        (t (error "Invalid output.")))))
+    (cond ((member "value" res-params)
+           (make-ob-sagemath--res-info
+            :success success
+            :output out-str
+            :result (sage-shell:send-command-to-string
+                     (ob-sagemath--python-name "print_last_result()"))))
+          (t (make-ob-sagemath--res-info
+              :success success
+              :result out-str)))))
 
 ;;;###autoload
 (defun org-babel-sage-ctrl-c-ctrl-c (arg)
@@ -127,9 +157,11 @@ Make sure your src block has a :session param."))
           (sage-shell:change-mode-line-process t "eval")
           (sage-shell:after-redirect-finished
             (sage-shell:change-mode-line-process nil)
-            (let* ((output (funcall output-call-back))
-                   (success-p (ob-sagemath--success output))
-                   (result (ob-sagemath--result output)))
+            (let* ((raw-output (funcall output-call-back))
+                   (res-info (ob-sagemath--last-res-info raw-output res-params))
+                   (success-p (ob-sagemath--res-info-success res-info))
+                   (result (ob-sagemath--res-info-result res-info))
+                   (output (ob-sagemath--res-info-output res-info)))
               (defun org-babel-execute:sage (_body _params)
                 (cond (success-p
                        (cond ((assq :file params) nil)
@@ -147,7 +179,20 @@ Make sure your src block has a :session param."))
                   (goto-char marker)
                   (call-interactively #'org-babel-execute-src-block)
                   (unless success-p
-                    (ob-sagemath--failure-callback result)))))))))))
+                    (ob-sagemath--failure-callback result))
+                  (when (and output (not (string= output "")))
+                    (ob-sagemath--make-output-buffer output)))))))))))
+
+
+(defvar ob-sagemath-output-buffer-name "*Ob-SageMath-Output*")
+(defun ob-sagemath--make-output-buffer (output)
+  (let ((inhibit-read-only t)
+        (view-read-only nil)
+        (buf (get-buffer-create ob-sagemath-output-buffer-name)))
+    (with-current-buffer buf
+      (erase-buffer)
+      (insert output)
+      (view-mode 1))))
 
 (defvar ob-sagemath-error-buffer-name "*Ob-SageMath-Error*")
 (defvar ob-sagemath--error-regexp
@@ -194,18 +239,19 @@ Make sure your src block has a :session param."))
 
 
 (defun ob-sagemath--code (raw-code params buf)
-  (let ((code (s-replace-all (list (cons (rx "\"") "\\\\\"")
-                                   (cons (rx "\n") "\\\\n"))
-                             (s-replace "\\" "\\\\" raw-code))))
+  (let* ((code (s-replace-all (list (cons (rx "\"") "\\\\\"")
+                                    (cons (rx "\n") "\\\\n"))
+                              (s-replace "\\" "\\\\" raw-code))))
     (format "%s(\"%s\", filename=%s)"
             (ob-sagemath--python-name "run_cell_babel")
-            code
-            (sage-shell:aif (assoc-default :file params)
-                (format "\"%s\""
-                        (with-current-buffer buf
-                          (expand-file-name it default-directory)))
-              "None"))))
+            code (ob-sagemath--result-file-name params buf))))
 
+(defun ob-sagemath--result-file-name (params buf)
+  (sage-shell:aif (assoc-default :file params)
+      (format "\"%s\""
+              (with-current-buffer buf
+                (expand-file-name it default-directory)))
+    "None"))
 
 (defun ob-sagemath--create-output-buffer (output)
   (unless (s-blank? output)
