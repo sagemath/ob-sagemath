@@ -62,38 +62,47 @@
       (setq ob-sagemath--imported-p t))))
 
 (defvar ob-sagemath--last-success-state t)
+(cl-defstruct ob-sagemath--res-info
+  result success output)
 
-(defun ob-sagemath--success (output)
-  (let ((s (substring-no-properties output -2 -1)))
-    (setq ob-sagemath--last-success-state
-          (cond ((string= s "1")
-                 t)
-                ((string= s "0")
-                 nil)
-                (t (error "Invalid output."))))))
-
-(defun ob-sagemath--result (output)
-  (substring-no-properties output 0 -2))
+(defun ob-sagemath--last-res-info (output res-params)
+  (let* ((suc-str (substring-no-properties output -2 -1))
+         (out-str (substring-no-properties output 0 -2))
+         (success (setq ob-sagemath--last-success-state
+                        (cond ((string= suc-str "1")
+                               t)
+                              ((string= suc-str "0")
+                               nil)
+                              (t (error "Invalid output."))))))
+    (cond ((member "value" res-params)
+           (make-ob-sagemath--res-info
+            :success success
+            :output out-str
+            :result (sage-shell:send-command-to-string
+                     (ob-sagemath--python-name "print_last_result()"))))
+          (t (make-ob-sagemath--res-info
+              :success success
+              :result out-str)))))
 
 ;;;###autoload
-(defun org-babel-sage-ctrl-c-ctrl-c (arg)
+(defun ob-sagemath-ctrl-c-ctrl-c (arg)
   "Execute current src code block. With prefix argument, evaluate all code in a
 buffer."
   (interactive "p")
   (case arg
-    (1 (org-babel-sage-ctrl-c-ctrl-c-1))
+    (1 (ob-sagemath-ctrl-c-ctrl-c-1))
     (4 (ob-sagemath-execute-buffer))))
 
-(defun org-babel-sage-ctrl-c-ctrl-c-1 ()
+(defun ob-sagemath-ctrl-c-ctrl-c-1 ()
   (let* ((info (org-babel-get-src-block-info))
-           (language (car info))
-           (body (nth 1 info))
-           (params (nth 2 info)))
-      (if (member language '("sage" "sage-shell"))
-          (org-babel-sage-execute1 body params)
-        (call-interactively #'org-ctrl-c-ctrl-c))))
+         (language (car info))
+         (body (nth 1 info))
+         (params (nth 2 info)))
+    (if (member language '("sage" "sage-shell"))
+        (ob-sagemath--execute1 body params)
+      (call-interactively #'org-ctrl-c-ctrl-c))))
 
-(defun org-babel-sage--init (session)
+(defun ob-sagemath--init (session sync)
   (cond ((string= session "none")
          (error "ob-sagemath currently only supports evaluation using a session.
 Make sure your src block has a :session param."))
@@ -104,53 +113,118 @@ Make sure your src block has a :session param."))
         (t (setq sage-shell:process-buffer
                  (sage-shell:run "sage" nil 'no-switch))))
 
-  (org-babel-remove-result)
-  (message "Evaluating code block ..."))
+  (unless sync
+    (org-babel-remove-result)
+    (message "Evaluating code block ...")))
 
-(defun org-babel-sage-execute1 (body params)
-  (let* ((session (cdr (assoc :session params)))
-         (raw-code (org-babel-expand-body:generic
-                    (encode-coding-string body 'utf-8)
-                    params (org-babel-variable-assignments:python params)))
-         (pt (point))
+(defun ob-sagemath--execute1 (body params)
+  (let* ((pt (point))
          (buf (current-buffer))
          (marker (make-marker))
          (marker (set-marker marker pt)))
+    (ob-sagemath--eval
+     body params
+     :callback (lambda (res-info)
+                 (ob-sagemath--define-exec-sage-async
+                  res-info params buf marker)))))
 
-    (org-babel-sage--init session)
+(defun ob-sagemath--define-exec-sage-async (res-info params buf marker)
+  (unwind-protect
+      (progn
+        (defun org-babel-execute:sage (_body _params)
+          (ob-sagemath--res-info-to-result res-info params))
+        (with-current-buffer buf
+          (save-excursion
+            (goto-char marker)
+            (call-interactively #'org-babel-execute-src-block)
+            (ob-sagemath--exec-callback res-info params))))
+    (fset 'org-babel-execute:sage #'ob-sagemath--execute-sync)))
+
+(defun ob-sagemath--exec-callback (res-info params)
+  (let ((success-p (ob-sagemath--res-info-success res-info))
+        (result (ob-sagemath--res-info-result res-info))
+        (output (ob-sagemath--res-info-output res-info)))
+    (unless success-p
+      (ob-sagemath--failure-callback
+       (cond ((member "value" (assoc-default :result-params params))
+              output)
+             (t result))))
+    (when (and output (not (string= output "")))
+      (ob-sagemath--make-output-buffer output))))
+
+(defun ob-sagemath--res-info-to-result (res-info params)
+  (let ((success-p (ob-sagemath--res-info-success res-info))
+        (result (ob-sagemath--res-info-result res-info))
+        (res-params (assoc-default :result-params params)))
+    (cond (success-p
+           (cond ((assq :file params) nil)
+                 ((member "file" res-params)
+                  (s-trim result))
+                 ((member "table" res-params)
+                  (ob-sagemath-table-or-string (s-trim result) params))
+                 (t result)))
+          ;; Return the empty string when it fails.
+          (t ""))))
+
+(defun ob-sagemath--execute-sync (body params)
+  (ob-sagemath--eval
+   body params
+   :sync t
+   :callback (lambda (res-info)
+               (prog1
+                   (ob-sagemath--res-info-to-result res-info params)
+                 (ob-sagemath--exec-callback res-info params)))))
+
+(defun org-babel-execute:sage (body params)
+  (ob-sagemath--execute-sync body params))
+
+(cl-defun ob-sagemath--eval (body params &key sync callback)
+  "CALLBACK will be called when evaluation is done with argument RES-INFO."
+  (let ((session (cdr (assoc :session params)))
+        (raw-code (org-babel-expand-body:generic
+                   (encode-coding-string body 'utf-8)
+                   params (org-babel-variable-assignments:python params)))
+        (buf (current-buffer))
+        (res-params (cdr (assoc :result-params params))))
+
+    (ob-sagemath--init session sync)
+
+    (when sync
+      (while (not (sage-shell:output-finished-p))
+        (accept-process-output
+         (get-buffer-process sage-shell:process-buffer) 0.3)
+        (sleep-for 0.3)))
 
     (with-current-buffer sage-shell:process-buffer
-      (sage-shell:after-output-finished
-        ;; Import a Python script if necessary.
-        (ob-sagemath--import-script)
+      (cond
+       (sync (ob-sagemath--import-script)
+             (let* ((raw-output (sage-shell:send-command-to-string
+                                  (ob-sagemath--code raw-code params buf)))
+                    (res-info (ob-sagemath--last-res-info raw-output res-params)))
+               (funcall callback res-info)))
+       (t (sage-shell:after-output-finished
+            ;; Import a Python script if necessary.
+            (ob-sagemath--import-script)
 
-        (let ((output-call-back
-               (sage-shell:send-command (ob-sagemath--code raw-code params buf)))
-              (res-params (cdr (assoc :result-params params))))
-          (sage-shell:change-mode-line-process t "eval")
-          (sage-shell:after-redirect-finished
-            (sage-shell:change-mode-line-process nil)
-            (let* ((output (funcall output-call-back))
-                   (success-p (ob-sagemath--success output))
-                   (result (ob-sagemath--result output)))
-              (defun org-babel-execute:sage (_body _params)
-                (cond (success-p
-                       (cond ((assq :file params) nil)
-                             ((member "file" res-params)
-                              (s-trim result))
-                             ((member "table" res-params)
-                              (org-babel-sage-table-or-string (s-trim result) params))
-                             (t result)))
-                      ;; Return the empty string when it fails.
-                      (t "")))
-              (fset 'org-babel-execute:sage-shell
-                    (symbol-function 'org-babel-execute:sage))
-              (with-current-buffer buf
-                (save-excursion
-                  (goto-char marker)
-                  (call-interactively #'org-babel-execute-src-block)
-                  (unless success-p
-                    (ob-sagemath--failure-callback result)))))))))))
+            (let ((output-call-back (sage-shell:send-command
+                                     (ob-sagemath--code raw-code params buf))))
+              (sage-shell:change-mode-line-process t "eval")
+              (sage-shell:after-redirect-finished
+                (sage-shell:change-mode-line-process nil)
+                (let* ((raw-output (sage-shell:get-value output-call-back))
+                       (res-info (ob-sagemath--last-res-info raw-output res-params)))
+                  (funcall callback res-info))))))))))
+
+
+(defvar ob-sagemath-output-buffer-name "*Ob-SageMath-Output*")
+(defun ob-sagemath--make-output-buffer (output)
+  (let ((inhibit-read-only t)
+        (view-read-only nil)
+        (buf (get-buffer-create ob-sagemath-output-buffer-name)))
+    (with-current-buffer buf
+      (erase-buffer)
+      (insert output)
+      (view-mode 1))))
 
 (defvar ob-sagemath-error-buffer-name "*Ob-SageMath-Error*")
 (defvar ob-sagemath--error-regexp
@@ -197,32 +271,21 @@ Make sure your src block has a :session param."))
 
 
 (defun ob-sagemath--code (raw-code params buf)
-  (let ((code (s-replace-all (list (cons (rx "\"") "\\\\\"")
-                                   (cons (rx "\n") "\\\\n"))
-                             (s-replace "\\" "\\\\" raw-code))))
+  (let* ((code (s-replace-all (list (cons (rx "\"") "\\\\\"")
+                                    (cons (rx "\n") "\\\\n"))
+                              (s-replace "\\" "\\\\" raw-code))))
     (format "%s(\"%s\", filename=%s)"
             (ob-sagemath--python-name "run_cell_babel")
-            code
-            (sage-shell:aif (assoc-default :file params)
-                (format "\"%s\""
-                        (with-current-buffer buf
-                          (expand-file-name it default-directory)))
-              "None"))))
+            code (ob-sagemath--result-file-name params buf))))
 
+(defun ob-sagemath--result-file-name (params buf)
+  (sage-shell:aif (assoc-default :file params)
+      (format "\"%s\""
+              (with-current-buffer buf
+                (expand-file-name it default-directory)))
+    "None"))
 
-(defun ob-sagemath--create-output-buffer (output)
-  (unless (s-blank? output)
-    (save-excursion
-      (let ((buf (get-buffer-create "*ob-sagemath-output*")))
-        (with-current-buffer buf
-          (special-mode)
-          (let ((inhibit-read-only t))
-            (erase-buffer)
-            (insert output)
-            (goto-char (point-min))))
-        (pop-to-buffer buf)))))
-
-(defun org-babel-sage-table-or-string (res params)
+(defun ob-sagemath-table-or-string (res params)
   (with-temp-buffer
     (insert res)
     (goto-char (point-min))
@@ -233,7 +296,7 @@ Make sure your src block has a :session param."))
                                  when (save-excursion (forward-char -1)
                                                       (not (nth 3 (syntax-ppss))))
                                  collect
-                                 (org-babel-sage-table-or-string--1
+                                 (ob-sagemath-table-or-string--1
                                   (point)
                                   (progn (forward-char -1)
                                          (forward-list) (1- (point))))))))
@@ -242,22 +305,22 @@ Make sure your src block has a :session param."))
                    (t res))))
           (t res))))
 
-(defun org-babel-sage-table-or-string--1 (beg end)
+(defun ob-sagemath-table-or-string--1 (beg end)
   (let ((start beg))
     (goto-char beg)
     (append
      (cl-loop while (and (re-search-forward "," end t)
                          (not (nth 3 (syntax-ppss))))
               collect (prog1
-                          (org-babel-sage--string-unqote
+                          (ob-sagemath--string-unqote
                            (s-trim
                             (buffer-substring-no-properties
                              start (- (point) 1))))
                         (setq start (point))))
-     (list (org-babel-sage--string-unqote
+     (list (ob-sagemath--string-unqote
             (s-trim (buffer-substring-no-properties start end)))))))
 
-(defun org-babel-sage--string-unqote (s)
+(defun ob-sagemath--string-unqote (s)
   (sage-shell:->>
    (cond ((string-match (rx bol (group (or (1+ "'") (1+ "\""))) (1+ nonl))
                         s)
@@ -286,10 +349,10 @@ Make sure your src block has a :session param."))
       (dolist (p markers)
         (goto-char p)
         (org-babel-remove-result))
-      (ob-sagemath--execute-makers markers buf))))
+      (ob-sagemath--execute-markers markers buf))))
 
 
-(defun ob-sagemath--execute-makers (markers buf)
+(defun ob-sagemath--execute-markers (markers buf)
   (cond ((null markers)
          (message "Every code block in this buffer has been evaluated."))
         (ob-sagemath--last-success-state
