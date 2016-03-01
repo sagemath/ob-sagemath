@@ -359,10 +359,10 @@ Make sure your src block has a :session param."))
          (with-current-buffer buf
            (save-excursion
              (goto-char (car markers))
-             (org-babel-sage-ctrl-c-ctrl-c-1))
+             (ob-sagemath-ctrl-c-ctrl-c-1))
            (sage-shell:after-output-finished
              (sage-shell:after-redirect-finished
-               (ob-sagemath--execute-makers (cdr markers) buf)))))
+               (ob-sagemath--execute-markers (cdr markers) buf)))))
         (t (setq ob-sagemath--last-success-state t))))
 
 (provide 'ob-sagemath)
