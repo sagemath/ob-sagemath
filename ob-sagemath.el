@@ -104,8 +104,10 @@ buffer."
 
 (defun ob-sagemath--init (session sync)
   (cond ((string= session "none")
-         (error "ob-sagemath currently only supports evaluation using a session.
-Make sure your src block has a :session param."))
+         (error
+          (concat
+           "ob-sagemath currently only supports evaluation using a session."
+           " Make sure your src block has a :session param.")))
         ((stringp session)
          (setq sage-shell:process-buffer
                (sage-shell:run "sage" nil 'no-switch
