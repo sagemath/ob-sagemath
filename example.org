@@ -27,13 +27,21 @@
 #+RESULTS:
 : 2^8 * 3^4 * 5^2 * 7
 
-** Graph
+** Graphs
 #+begin_src sage :file ./images/sin.png :exports both
   P = plot(sin(x), (0, 2*pi), figsize=[5, 4]); P
 #+end_src
 
 #+RESULTS:
 [[file:./images/sin.png]]
+
+#+begin_src sage :file ./images/mat.png :exports both
+  m = random_matrix(RDF, 50)
+  m.plot(figsize=5)
+#+end_src
+
+#+RESULTS:
+[[file:./images/mat.png]]
 
 ** Tables
 #+begin_src sage :results table :exports both
