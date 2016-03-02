@@ -1,13 +1,15 @@
+#+PROPERTY: header-args:sage :exports both
+
 * Sample code blocks
 
-#+begin_src sage :exports both
+#+begin_src sage
   factor(factorial(10))
 #+end_src
 
 #+RESULTS:
 : 2^8 * 3^4 * 5^2 * 7
 
-#+begin_src sage :file ./images/sin.png :exports both
+#+begin_src sage :file ./images/sin.png
   P = plot(sin(x), (0, 2*pi), figsize=[5, 4]); P
 #+end_src
 
@@ -15,14 +17,14 @@
 [[file:./images/sin.png]]
 
 
-#+begin_src sage :exports both
+#+begin_src sage
   E = EllipticCurve(u'389a'); E
 #+end_src
 
 #+RESULTS:
 : Elliptic Curve defined by y^2 + y = x^3 + x^2 - 2*x over Rational Field
 
-#+begin_src sage :exports both
+#+begin_src sage
   print "Rank", E.rank()
   E.integral_points()
 #+end_src
@@ -42,7 +44,7 @@ Rank 2
  (188 : 2584 : 1)]
 #+end_example
 
-#+begin_src sage :file ./images/e389a.png :exports both
+#+begin_src sage :file ./images/e389a.png
   E.plot(figsize=5)
 #+end_src
 
