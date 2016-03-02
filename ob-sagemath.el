@@ -26,6 +26,7 @@
 (require 's)
 (require 'ob-exp)
 (add-to-list 'org-babel-tangle-lang-exts '("sage" . "sage"))
+(add-to-list 'org-src-lang-modes '("sage" . sage-shell:sage-mode))
 (defvar org-babel-default-header-args:sage '((:session . t)
                                              (:exports . "both")
                                              (:results . "output")))
