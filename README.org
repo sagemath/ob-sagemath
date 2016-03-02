@@ -25,5 +25,5 @@ Here is a sample configuration for =ob-sagemath=. Put these lines in your "~/.em
   (add-hook 'org-babel-after-execute-hook 'org-display-inline-images)
 #+end_src
 
-** Sample org file
-   [[file:./sample.org][sample.org]]
+** Org babel file example
+   [[file:./example.org][example.org]]
