@@ -56,12 +56,12 @@
 | 4 |  17 |
 
 #+begin_src sage :results table :exports both :colnames yes
-  colnames = ("a", "Smallest prime greater than 2^n")
+  colnames = ("a", "Smallest prime greater than 2^a")
   [colnames] + [(a, next_prime(2^a)) for a in range(50, 55)]
 #+end_src
 
 #+RESULTS:
-|  a | Smallest prime greater than 2^n |
+|  a | Smallest prime greater than 2^a |
 |----+---------------------------------|
 | 50 |                1125899906842679 |
 | 51 |                2251799813685269 |
