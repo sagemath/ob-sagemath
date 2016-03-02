@@ -26,7 +26,7 @@
 (require 's)
 (require 'ob-exp)
 (add-to-list 'org-babel-tangle-lang-exts '("sage" . "sage"))
-(add-to-list 'org-src-lang-modes '("sage" . sage-shell:sage-mode))
+(add-to-list 'org-src-lang-modes '("sage" . sage-shell:sage))
 
 (defvar ob-sagemath--python-script-dir
   (if load-file-name
