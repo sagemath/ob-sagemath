@@ -27,13 +27,6 @@
 (require 'ob-exp)
 (add-to-list 'org-babel-tangle-lang-exts '("sage" . "sage"))
 (add-to-list 'org-src-lang-modes '("sage" . sage-shell:sage-mode))
-(defvar org-babel-default-header-args:sage '((:session . t)
-                                             (:exports . "both")
-                                             (:results . "output")))
-;;; Do not evaluate code when exporting.
-(setq org-export-babel-evaluate nil)
-
-
 
 (defvar ob-sagemath--python-script-dir
   (if load-file-name
