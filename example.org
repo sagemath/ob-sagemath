@@ -1,5 +1,5 @@
 * Examples of code blocks
-** Vesions
+** Versions
 #+begin_src emacs-lisp :exports both :results output
   (princ "Emacs: ")
   (princ emacs-version)
