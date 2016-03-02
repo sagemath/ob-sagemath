@@ -1,4 +1,29 @@
-* ob-sage
+* ob-sagemath
   [[https://travis-ci.org/stakemori/ob-sagemath][https://travis-ci.org/stakemori/ob-sagemath.svg]]
 
-  ob-sage implementation using [[https://github.com/stakemori/sage-shell-mode][sage-shell-mode]].
+  org-babel integration with [[http://www.sagemath.org/][SageMath]].
+
+** Sample configuration
+Here is a sample configuration for =ob-sagemath=. Put these lines in your "~/.emacs.d/init.el".
+
+#+begin_src emacs-lisp
+  ;; Ob-sagemath supports only evaluating with a session.
+  (setq org-babel-default-header-args:sage '((:session . t)
+                                             (:results . "output")))
+
+  ;; Do not evaluate code blocks when exporting.
+  (setq org-export-babel-evaluate nil)
+
+  ;; Enable asynchronous evaluating by overriding the keybinding (only SageMath code blocks).
+  (with-eval-after-load "org"
+    (define-key org-mode-map (kbd "C-c C-c") 'ob-sagemath-ctrl-c-ctrl-c))
+
+  ;; Show images when opening a file.
+  (setq org-startup-with-inline-images t)
+
+  ;; Show images after evaluating code blocks.
+  (add-hook 'org-babel-after-execute-hook 'org-display-inline-images)
+#+end_src
+
+** Sample org files
+   To be added.
