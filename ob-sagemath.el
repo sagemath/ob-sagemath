@@ -24,7 +24,6 @@
 (require 'sage-shell-mode)
 (require 'ob-python)
 (require 's)
-(require 'ob-exp)
 (add-to-list 'org-babel-tangle-lang-exts '("sage" . "sage"))
 (add-to-list 'org-src-lang-modes '("sage" . sage-shell:sage))
 
