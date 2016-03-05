@@ -109,7 +109,8 @@ buffer."
          (language (car info))
          (body (nth 1 info))
          (params (nth 2 info)))
-    (cond ((ob-sagemath--cache-current-p info params)
+    (cond ((and language body
+                (ob-sagemath--cache-current-p info params))
            ;; If result is cached, call sync version.
            (org-babel-execute-src-block nil info params))
           ((member language '("sage" "sage-shell"))
