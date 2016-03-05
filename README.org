@@ -1,7 +1,7 @@
 * ob-sagemath
   [[https://travis-ci.org/stakemori/ob-sagemath][https://travis-ci.org/stakemori/ob-sagemath.svg]]
 
-  ob-sagemath is an org-babel integration with [[http://www.sagemath.org/][SageMath]] by [[https://github.com/stakemori/sage-shell-mode][sage-shell-mode]].
+  ob-sagemath provides an [[http://orgmode.org/worg/org-contrib/babel/][org-babel]] integration with [[http://www.sagemath.org/][SageMath]] by [[https://github.com/stakemori/sage-shell-mode][sage-shell-mode]].
   This package is inspired by [[https://github.com/gregsexton/ob-ipython][ob-ipython]],
   though the implementation is completely different.
 
