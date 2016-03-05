@@ -1,22 +1,29 @@
 * ob-sagemath
   [[https://travis-ci.org/stakemori/ob-sagemath][https://travis-ci.org/stakemori/ob-sagemath.svg]]
 
-  org-babel integration with [[http://www.sagemath.org/][SageMath]].
+  ob-sagemath is an org-babel integration with [[http://www.sagemath.org/][SageMath]] by [[https://github.com/stakemori/sage-shell-mode][sage-shell-mode]].
+  This package is inspired by [[https://github.com/gregsexton/ob-ipython][ob-ipython]],
+  though the implementation is completely different.
+
+** Requirements
+   1. SageMath 6.6 or newer.
+   2. GNU Emacs 24.3 or newer.
 
 ** Sample configuration
-Here is a sample configuration for =ob-sagemath=. Put these lines in your "~/.emacs.d/init.el".
+   #+LABEL: sec:config
+   Here is a sample configuration for =ob-sagemath=. Put these lines in your "~/.emacs.d/init.el".
 
 #+begin_src emacs-lisp
   ;; Ob-sagemath supports only evaluating with a session.
   (setq org-babel-default-header-args:sage '((:session . t)
                                              (:results . "output")))
 
-  ;; Do not evaluate code blocks when exporting.
-  (setq org-export-babel-evaluate nil)
-
   ;; Enable asynchronous evaluating by overriding the keybinding (only SageMath code blocks).
   (with-eval-after-load "org"
     (define-key org-mode-map (kbd "C-c C-c") 'ob-sagemath-ctrl-c-ctrl-c))
+
+  ;; Do not evaluate code blocks when exporting.
+  (setq org-export-babel-evaluate nil)
 
   ;; Show images when opening a file.
   (setq org-startup-with-inline-images t)
@@ -25,5 +32,72 @@ Here is a sample configuration for =ob-sagemath=. Put these lines in your "~/.em
   (add-hook 'org-babel-after-execute-hook 'org-display-inline-images)
 #+end_src
 
-** Org babel file example
+** Example file
+   Here is an example org file.
+
    [[file:./example.org][example.org]]
+
+** Session
+    ob-sagemath currently supports only evaluating with a session by using [[https://github.com/stakemori/sage-shell-mode][sage-shell-mode]].
+    So like in [[sec:config][Sample configuration]], you have to provide the =:session= header argument.
+    Usually, code blocks are evaluated in the =*Sage*= process buffer.
+    If the =:session= argument is provided and it is a string, then the code block is evaluated in
+    another process buffer.
+    For example, by evaluating the following code block, a process buffer =*Sage<foo>*= is created and
+    the code block is evaluated in the process buffer.
+
+#+BEGIN_EXAMPLE
+  ,#+BEGIN_SRC  sage :session foo
+    print 'This code will be evaluated in the process buffer *Sage<foo>*.'
+  ,#+END_SRC
+#+END_EXAMPLE
+
+** Asynchronous evaluation
+   You can evaluate SageMath code blocks by =C-c C-c= (bound to =org-ctrl-c-ctrl-c=) like in other org-babel packages.
+   But usually it blocks user inputs. In [[sec:config][Sample Configuration]], =C-c C-c= is bound to =ob-sagemath-ctrl-c-ctrl-c=.
+   And it enables the asynchronous evaluation. So you can interact with Emacs during the evaluation.
+   If the =org-mode= buffer is killed during the evaluation, the output will be lost.
+   Please do not kill the =org-mode= buffer until the evaluation completes.
+
+** Images
+   Images of 2d graphs can be embedded by providing the =:file= header argument.
+   By evaluating the code block, the image file is stored in the file.
+   Here is an example.
+
+#+BEGIN_EXAMPLE
+  ,#+BEGIN_SRC sage :file sin.png
+    # You can change the size of the image by the figsize argument.
+    plot(sin, [0, 2*pi], figsize=4)
+  ,#+END_SRC
+
+  ,#+RESULTS:
+  [[file:sin.png]]
+#+END_EXAMPLE
+
+   If the =:file= header argument is not provided and the =:results= header argument contains =file=,
+   then the code block returns a temporally file name.
+   SageMath deletes these temporally files when the process exits.
+
+#+BEGIN_EXAMPLE
+  ,#+BEGIN_SRC sage :results file
+    plot(sin, [0, 2*pi])
+  ,#+END_SRC
+#+END_EXAMPLE
+
+
+** Tables
+   If the =:results= header argument contains =table= and the output looks like a table
+   (a list/tuple of lists/tuples), then the result is converted to a table.
+
+#+BEGIN_EXAMPLE
+  ,#+BEGIN_SRC sage :results table :colnames '(Fruit Price)
+    [("Apple", "300"), ("Banana", "200"), ("Orange", "300")]
+  ,#+END_SRC
+
+  ,#+RESULTS:
+  | Fruit  | Price |
+  |--------+-------|
+  | Apple  |   300 |
+  | Banana |   200 |
+  | Orange |   300 |
+#+END_EXAMPLE
