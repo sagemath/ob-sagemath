@@ -95,15 +95,15 @@
               :result out-str)))))
 
 ;;;###autoload
-(defun ob-sagemath-ctrl-c-ctrl-c (arg)
+(defun ob-sagemath-execute-async (arg)
   "Execute current src code block. With prefix argument, evaluate all code in a
 buffer."
   (interactive "p")
   (case arg
-    (1 (ob-sagemath-ctrl-c-ctrl-c-1))
+    (1 (ob-sagemath-execute-async-1))
     (4 (ob-sagemath-execute-buffer))))
 
-(defun ob-sagemath-ctrl-c-ctrl-c-1 ()
+(defun ob-sagemath-execute-async-1 ()
   (let* ((info (org-babel-get-src-block-info))
          (language (car info))
          (body (nth 1 info))
@@ -375,7 +375,7 @@ buffer."
          (with-current-buffer buf
            (save-excursion
              (goto-char (car markers))
-             (ob-sagemath-ctrl-c-ctrl-c-1))
+             (ob-sagemath-execute-async-1))
            (sage-shell:after-output-finished
              (sage-shell:after-redirect-finished
                (ob-sagemath--execute-markers (cdr markers) buf)))))
