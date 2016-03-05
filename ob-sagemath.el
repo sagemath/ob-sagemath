@@ -376,9 +376,12 @@ buffer."
            (save-excursion
              (goto-char (car markers))
              (ob-sagemath-execute-async-1))
-           (sage-shell:after-output-finished
-             (sage-shell:after-redirect-finished
-               (ob-sagemath--execute-markers (cdr markers) buf)))))
+           (cond ((and sage-shell:process-buffer
+                       (buffer-live-p sage-shell:process-buffer))
+                  (sage-shell:after-output-finished
+                    (sage-shell:after-redirect-finished
+                      (ob-sagemath--execute-markers (cdr markers) buf))))
+                 (t (ob-sagemath--execute-markers (cdr markers) buf)))))
         (t (setq ob-sagemath--last-success-state t))))
 
 (provide 'ob-sagemath)
