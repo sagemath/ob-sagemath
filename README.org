@@ -10,7 +10,6 @@
    2. GNU Emacs 24.3 or newer.
 
 ** Sample configuration
-   #+LABEL: sec:config
    Here is a sample configuration for =ob-sagemath=. Put these lines in your "~/.emacs.d/init.el".
 
 #+begin_src emacs-lisp
@@ -39,7 +38,7 @@
 
 ** Session
     ob-sagemath currently supports only evaluating with a session by using [[https://github.com/stakemori/sage-shell-mode][sage-shell-mode]].
-    So like in [[sec:config][Sample configuration]], you have to provide the =:session= header argument.
+    So like in the sample configuration, you have to provide the =:session= header argument.
     Usually, code blocks are evaluated in the =*Sage*= process buffer.
     If the =:session= argument is provided and it is a string, then the code block is evaluated in
     another process buffer.
@@ -54,7 +53,7 @@
 
 ** Asynchronous evaluation
    You can evaluate SageMath code blocks by =C-c C-c= (bound to =org-ctrl-c-ctrl-c=) like in other org-babel packages.
-   But usually it blocks user inputs. In [[sec:config][Sample Configuration]], =C-c C-c= is bound to =ob-sagemath-ctrl-c-ctrl-c=.
+   But usually it blocks user inputs. In the sample configuration, =C-c C-c= is bound to =ob-sagemath-ctrl-c-ctrl-c=.
    And it enables the asynchronous evaluation. So you can interact with Emacs during the evaluation.
    If the =org-mode= buffer is killed during the evaluation, the output will be lost.
    Please do not kill the =org-mode= buffer until the evaluation completes.
@@ -66,7 +65,7 @@
 
 #+BEGIN_EXAMPLE
   ,#+BEGIN_SRC sage :file sin.png
-    # You can change the size of the image by the figsize argument.
+    # You can change the size of the image by providing the figsize argument.
     plot(sin, [0, 2*pi], figsize=4)
   ,#+END_SRC
 
