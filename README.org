@@ -90,7 +90,7 @@
 
 #+BEGIN_EXAMPLE
   ,#+BEGIN_SRC sage :results table :colnames '(Fruit Price)
-    [("Apple", "300"), ("Banana", "200"), ("Orange", "300")]
+    [("Apple", 300), ("Banana", 200), ("Orange", 300)]
   ,#+END_SRC
 
   ,#+RESULTS:
