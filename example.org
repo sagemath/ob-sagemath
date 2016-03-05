@@ -9,7 +9,7 @@
 #+end_src
 
 #+RESULTS:
-: Emacs: 25.0.91.1
+: Emacs: 25.0.92.2
 : Org: 8.3.4
 
 #+begin_src sage :exports both
@@ -17,7 +17,7 @@
 #+end_src
 
 #+RESULTS:
-: SageMath Version 7.0, Release Date: 2016-01-19
+: SageMath Version 7.1.beta5, Release Date: 2016-02-25
 
 ** Basic math
 #+begin_src sage :exports both
@@ -28,20 +28,20 @@
 : 2^8 * 3^4 * 5^2 * 7
 
 ** Graphs
-#+begin_src sage :file ./images/sin.png :exports both
+#+begin_src sage :file images/sin.png :exports both
   P = plot(sin(x), (0, 2*pi), figsize=[5, 4]); P
 #+end_src
 
 #+RESULTS:
-[[file:./images/sin.png]]
+[[file:images/sin.png]]
 
-#+begin_src sage :file ./images/mat.png :exports both
+#+begin_src sage :file images/mat.png :exports both
   m = random_matrix(RDF, 50)
   m.plot(figsize=5)
 #+end_src
 
 #+RESULTS:
-[[file:./images/mat.png]]
+[[file:images/mat.png]]
 
 ** Tables
 #+begin_src sage :results table :exports both
@@ -97,9 +97,9 @@ Rank 2
  (188 : 2584 : 1)]
 #+end_example
 
-#+begin_src sage :file ./images/e389a.png :exports both
+#+begin_src sage :file images/e389a.png :exports both
   E.plot(figsize=5)
 #+end_src
 
 #+RESULTS:
-[[file:./images/e389a.png]]
+[[file:images/e389a.png]]
