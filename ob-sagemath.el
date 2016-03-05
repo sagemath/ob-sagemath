@@ -169,7 +169,7 @@ buffer."
                (prog1
                    (ob-sagemath--res-info-to-result res-info params)
                  (ob-sagemath--exec-callback res-info params)))))
-
+;;;###autoload
 (defun org-babel-execute:sage (body params)
   (ob-sagemath--execute-sync body params))
 
