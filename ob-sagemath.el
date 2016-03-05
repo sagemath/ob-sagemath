@@ -102,7 +102,7 @@ buffer."
   (interactive "p")
   (case arg
     (1 (ob-sagemath-execute-async-1))
-    (4 (ob-sagemath-execute-buffer))))
+    (4 (ob-sagemath-execute-buffer-async))))
 
 (defun ob-sagemath-execute-async-1 ()
   (let* ((info (org-babel-get-src-block-info))
@@ -359,16 +359,12 @@ buffer."
         (push mrkr markers)))
     (reverse markers)))
 
-(defun ob-sagemath-execute-buffer ()
+(defun ob-sagemath-execute-buffer-async ()
   (interactive)
   (setq ob-sagemath--last-success-state t)
   (let ((markers (ob-sagemath--code-block-markers))
         (buf (current-buffer)))
     (save-excursion
-      ;; Remove all results in current buffer
-      (dolist (p markers)
-        (goto-char p)
-        (org-babel-remove-result))
       (ob-sagemath--execute-markers markers buf))))
 
 
