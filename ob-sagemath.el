@@ -65,6 +65,12 @@
        nil nil t)
       (setq ob-sagemath--imported-p t))))
 
+(defun ob-sagemath--cache-current-p (info params)
+  (when (and (cdr (assoc :cache params))
+             (string= "yes" (cdr (assoc :cache params))))
+    (let ((new-hash (org-babel-sha1-hash info)))
+      (and new-hash (equal new-hash (org-babel-current-result-hash))))))
+
 (defvar ob-sagemath--last-success-state t)
 (cl-defstruct ob-sagemath--res-info
   result success output)
@@ -102,7 +108,8 @@ buffer."
          (language (car info))
          (body (nth 1 info))
          (params (nth 2 info)))
-    (if (member language '("sage" "sage-shell"))
+    (if (and (member language '("sage" "sage-shell"))
+             (ob-sagemath--cache-current-p info params))
         (ob-sagemath--execute1 body params)
       (call-interactively #'org-ctrl-c-ctrl-c))))
 
