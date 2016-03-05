@@ -17,9 +17,9 @@
   (setq org-babel-default-header-args:sage '((:session . t)
                                              (:results . "output")))
 
-  ;; Enable asynchronous evaluating by overriding the keybinding (only SageMath code blocks).
+  ;; C-c c for asynchronous evaluating (only for SageMath code blocks).
   (with-eval-after-load "org"
-    (define-key org-mode-map (kbd "C-c C-c") 'ob-sagemath-ctrl-c-ctrl-c))
+    (define-key org-mode-map (kbd "C-c c") 'ob-sagemath-execute-async))
 
   ;; Do not evaluate code blocks when exporting.
   (setq org-export-babel-evaluate nil)
@@ -53,8 +53,9 @@
 
 ** Asynchronous evaluation
    You can evaluate SageMath code blocks by =C-c C-c= (bound to =org-ctrl-c-ctrl-c=) like in other org-babel packages.
-   But usually it blocks user inputs. In the sample configuration, =C-c C-c= is bound to =ob-sagemath-ctrl-c-ctrl-c=.
+   But usually it blocks user inputs. In the sample configuration, =C-c c= is bound to =ob-sagemath-execute-async=.
    And it enables the asynchronous evaluation. So you can interact with Emacs during the evaluation.
+   With a prefix argument, it evaluates all code blocks in a buffer.
    If the =org-mode= buffer is killed during the evaluation, the output will be lost.
    Please do not kill the =org-mode= buffer until the evaluation completes.
 
