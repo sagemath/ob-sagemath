@@ -66,10 +66,11 @@
       (setq ob-sagemath--imported-p t))))
 
 (defun ob-sagemath--cache-current-p (info params)
-  (when (and (cdr (assoc :cache params))
-             (string= "yes" (cdr (assoc :cache params))))
-    (let ((new-hash (org-babel-sha1-hash info)))
-      (and new-hash (equal new-hash (org-babel-current-result-hash))))))
+  (let ((cache (cdr (assoc :cache params))))
+    (when (and cache (string= "yes" cache))
+      (let ((new-hash (org-babel-sha1-hash info)))
+        (and new-hash
+             (equal new-hash (org-babel-current-result-hash)))))))
 
 (defvar ob-sagemath--last-success-state t)
 (cl-defstruct ob-sagemath--res-info
@@ -108,10 +109,12 @@ buffer."
          (language (car info))
          (body (nth 1 info))
          (params (nth 2 info)))
-    (if (and (member language '("sage" "sage-shell"))
-             (ob-sagemath--cache-current-p info params))
-        (ob-sagemath--execute1 body params)
-      (call-interactively #'org-ctrl-c-ctrl-c))))
+    (cond ((ob-sagemath--cache-current-p info params)
+           ;; If result is cached, call sync version.
+           (call-interactively #'org-ctrl-c-ctrl-c))
+          ((member language '("sage" "sage-shell"))
+           (ob-sagemath--execute1 body params))
+          (t (call-interactively #'org-ctrl-c-ctrl-c)))))
 
 (defun ob-sagemath--init (session sync)
   (cond ((string= session "none")
