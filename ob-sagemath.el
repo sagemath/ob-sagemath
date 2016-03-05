@@ -1,9 +1,14 @@
-;;; ob-sagemath.el --- org-babel functions for SageMath -*- lexical-binding: t -*-
+;;; ob-sagemath.el --- org-babel functions for SageMath evaluation -*- lexical-binding: t -*-
 
-;; Package-Requires: ((sage-shell-mode "0.0.8") (s "1.8.0"))
+;; Copyright (C) 2016- Sho Takemori.
+
+;; Author: Sho Takemori <stakemorii@gmail.com>
+;; URL: https://github.com/stakemori/ob-sagemath
+;; Package-Requires: ((sage-shell-mode "0.0.8") (s "1.8.0") (emacs "24"))
 ;; Version: 0.1
-;;; License:
+;; Keywords: SageMath, org-babel
 
+;;; License:
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 3, or (at your option)
@@ -18,6 +23,12 @@
 ;; along with GNU Emacs; see the file COPYING.  If not, write to the
 ;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 ;; Boston, MA 02110-1301, USA.
+
+;;; Commentary:
+
+;; org-babel integration with SageMath using sage-shell-mode. Visit
+;; https://github.com/stakemori/ob-sagemath for more information.
+
 
 ;;; Code:
 (require 'org)
