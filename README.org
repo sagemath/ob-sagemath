@@ -8,10 +8,13 @@
 
 ** Requirements
    1. SageMath 6.6 or newer.
-   2. GNU Emacs 24.3 or newer.
+   1. GNU Emacs 24.3 or newer.
+   1. [[https://github.com/stakemori/sage-shell-mode][sage-shell-mode]]
 
 ** Installation and sample configuration
    You can install =ob-sagemath= from [[https://github.com/milkypostman/melpa.git][MELPA]].
+   =ob-sagemath= requires [[https://github.com/stakemori/sage-shell-mode][sage-shell-mode]].
+   See [[https://github.com/stakemori/sage-shell-mode#installation-and-setup][Installation and Setup]] to setup [[https://github.com/stakemori/sage-shell-mode][sage-shell-mode]].
    The following is a sample configuration for =ob-sagemath=. Put these lines in your "~/.emacs.d/init.el".
 
 #+begin_src emacs-lisp
