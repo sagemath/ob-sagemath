@@ -46,7 +46,7 @@ This example is from the document of the method =plot= of a matrix object.
 [[file:images/mat.png]]
 
 This example is from the document of the function =implicit_plot3d=.
-#+BEGIN_SRC sage :cache yes :file implicit_plot3d_exa.png
+#+BEGIN_SRC sage :file implicit_plot3d_exa.png
   var('x,y,z')
   T = RDF(golden_ratio)
   p = 2 - (cos(x + T*y) + cos(x - T*y) + cos(y + T*z) + cos(y - T*z) + cos(z - T*x) + cos(z + T*x))
@@ -54,8 +54,9 @@ This example is from the document of the function =implicit_plot3d=.
   implicit_plot3d(p, (x, -r, r), (y, -r, r), (z, -r, r), plot_points=40).show(viewer='tachyon', figsize=5)
 #+END_SRC
 
-#+RESULTS[62071b16f0b7510d7618a1fef54d33e2ae67989e]:
+#+RESULTS:
 [[file:implicit_plot3d_exa.png]]
+
 
 
 ** Tables
