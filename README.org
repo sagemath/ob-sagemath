@@ -1,6 +1,7 @@
 * ob-sagemath
   [[http://melpa.org/#/ob-sagemath][file:http://melpa.org/packages/ob-sagemath-badge.svg]]
   [[https://travis-ci.org/stakemori/ob-sagemath][https://travis-ci.org/stakemori/ob-sagemath.svg]]
+  [[http://stable.melpa.org/#/ob-sagemath][file:http://stable.melpa.org/packages/ob-sagemath-badge.svg]]
 
   ob-sagemath provides an [[http://orgmode.org/worg/org-contrib/babel/][org-babel]] integration with [[http://www.sagemath.org/][SageMath]] by [[https://github.com/stakemori/sage-shell-mode][sage-shell-mode]].
   This package is inspired by [[https://github.com/gregsexton/ob-ipython][ob-ipython]],
