@@ -9,8 +9,9 @@
    1. SageMath 6.6 or newer.
    2. GNU Emacs 24.3 or newer.
 
-** Sample configuration
-   Here is a sample configuration for =ob-sagemath=. Put these lines in your "~/.emacs.d/init.el".
+** Installation and sample configuration
+   You can install =ob-sagemath= from [[https://github.com/milkypostman/melpa.git][MELPA]].
+   The following is a sample configuration for =ob-sagemath=. Put these lines in your "~/.emacs.d/init.el".
 
 #+begin_src emacs-lisp
   ;; Ob-sagemath supports only evaluating with a session.
@@ -101,6 +102,10 @@
   | Banana |   200 |
   | Orange |   300 |
 #+END_EXAMPLE
+
+** Kill evaluation
+   To kill the evaluation, switch to the process buffer (usually its buffer name is =*Sage*=),
+   and hit =C-c C-c= (bound to =sage-shell:interrupt-subjob=).
 
 ** Issues or pull requests
    I am new to org-babel. There may be missing features. Feel free to post issues or send pull requests.
