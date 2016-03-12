@@ -27,6 +27,9 @@
   (with-eval-after-load "org"
     (define-key org-mode-map (kbd "C-c c") 'ob-sagemath-execute-async))
 
+  ;; Do not confirm before evaluation
+  (setq org-confirm-babel-evaluate nil)
+
   ;; Do not evaluate code blocks when exporting.
   (setq org-export-babel-evaluate nil)
 
@@ -66,7 +69,7 @@
    Please do not kill the =org-mode= buffer until the evaluation completes.
 
 ** Images
-   Images of 2d graphs can be embedded by providing the =:file= header argument.
+   Image files of graphs can be embedded by providing the =:file= header argument.
    By evaluating the code block, the image file is stored in the file.
    Here is an example.
 
