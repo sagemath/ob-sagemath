@@ -78,7 +78,8 @@
 
 (defun ob-sagemath--last-res-info (output res-params)
   (let* ((suc-str (substring-no-properties output -2 -1))
-         (out-str (substring-no-properties output 0 -2))
+         ;; Remove success state and the final new line
+         (out-str (substring-no-properties output 0 -3))
          (success (setq ob-sagemath--last-success-state
                         (cond ((string= suc-str "1")
                                t)
