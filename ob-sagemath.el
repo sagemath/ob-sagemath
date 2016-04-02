@@ -38,6 +38,17 @@
 (add-to-list 'org-babel-tangle-lang-exts '("sage" . "sage"))
 (add-to-list 'org-src-lang-modes '("sage" . sage-shell:sage))
 
+(defvar org-babel-header-args:sage
+  '((latexwrap . :any)
+    (results . ((file list vector table scalar verbatim)
+                (tolatex)
+                (raw html latex org code pp drawer)
+                (replace silent none append prepend)
+                (output value))))
+  "SageMath specific header arguments")
+
+(defconst ob-sagemath-to-latex-result-param "tolatex")
+
 (defvar ob-sagemath--python-script-dir
   (if load-file-name
       (file-name-directory load-file-name)
@@ -76,8 +87,9 @@
 (cl-defstruct ob-sagemath--res-info
   result success output)
 
-(defun ob-sagemath--last-res-info (output res-params)
-  (let* ((suc-str (substring-no-properties output -2 -1))
+(defun ob-sagemath--last-res-info (output params)
+  (let* ((res-params (assoc-default :result-params params))
+         (suc-str (substring-no-properties output -2 -1))
          ;; Remove success state and the final new line
          (out-str (substring-no-properties output 0 -3))
          (success (setq ob-sagemath--last-success-state
@@ -86,6 +98,10 @@
                               ((string= suc-str "0")
                                nil)
                               (t (error "Invalid output."))))))
+    (sage-shell:awhen (and (member ob-sagemath-to-latex-result-param
+                                   res-params)
+                           (assoc-default :latexwrap params))
+      (setq out-str (concat (car it) out-str (cdr it))))
     (cond ((member "value" res-params)
            (make-ob-sagemath--res-info
             :success success
@@ -202,8 +218,7 @@ buffer."
         (raw-code (org-babel-expand-body:generic
                    (encode-coding-string body 'utf-8)
                    params (org-babel-variable-assignments:python params)))
-        (buf (current-buffer))
-        (res-params (cdr (assoc :result-params params))))
+        (buf (current-buffer)))
 
     (ob-sagemath--init session sync)
 
@@ -218,7 +233,7 @@ buffer."
        (sync (ob-sagemath--import-script)
              (let* ((raw-output (sage-shell:send-command-to-string
                                   (ob-sagemath--code raw-code params buf)))
-                    (res-info (ob-sagemath--last-res-info raw-output res-params)))
+                    (res-info (ob-sagemath--last-res-info raw-output params)))
                (funcall callback res-info)))
        (t (sage-shell:after-output-finished
             ;; Import a Python script if necessary.
@@ -230,7 +245,7 @@ buffer."
               (sage-shell:after-redirect-finished
                 (sage-shell:change-mode-line-process nil)
                 (let* ((raw-output (sage-shell:get-value output-call-back))
-                       (res-info (ob-sagemath--last-res-info raw-output res-params)))
+                       (res-info (ob-sagemath--last-res-info raw-output params)))
                   (funcall callback res-info))))))))))
 
 
@@ -292,9 +307,17 @@ buffer."
   (let* ((code (s-replace-all (list (cons (rx "\"") "\\\\\"")
                                     (cons (rx "\n") "\\\\n"))
                               (s-replace "\\" "\\\\" raw-code))))
-    (format "%s(\"%s\", filename=%s)"
+    (format "%s(\"%s\", filename=%s, latex=%s)"
             (ob-sagemath--python-name "run_cell_babel")
-            code (ob-sagemath--result-file-name params buf))))
+            code
+            (ob-sagemath--result-file-name params buf)
+            (ob-sagemath--latex-arg params))))
+
+(defun ob-sagemath--latex-arg (params)
+  (let ((results (assoc-default :result-params params)))
+    (cond ((member ob-sagemath-to-latex-result-param results) "True")
+          (t "False"))))
+
 
 (defun ob-sagemath--result-file-name (params buf)
   (sage-shell:aif (assoc-default :file params)
