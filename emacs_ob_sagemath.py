@@ -1,7 +1,10 @@
 # -*- coding: utf-8; mode: sage -*-
 from sage.repl.rich_output.output_catalog import OutputImagePng
 from sage.repl.rich_output.backend_ipython import BackendIPythonCommandline
+from sage.repl.rich_output.output_basic import OutputLatex
 from sage.repl.rich_output import get_display_manager
+from sage.repl.rich_output.preferences import DisplayPreferences
+from sage.misc.latex import latex
 from emacs_sage_shell import ip
 
 
@@ -16,6 +19,24 @@ last_state = LastState()
 
 
 class BackendEmacsBabel(BackendIPythonCommandline):
+
+    def __init__(self, latex=None):
+        super(BackendEmacsBabel, self).__init__()
+        self.__latex = latex
+
+    def default_preferences(self):
+        if self.__latex:
+            text = 'latex'
+        else:
+            text = None
+        return DisplayPreferences(text=text)
+
+    def latex_formatter(self, obj, **kwds):
+        if 'concatenate' in kwds:
+            combine_all = kwds['combine_all']
+        else:
+            combine_all = False
+        return OutputLatex(latex(obj, combine_all=combine_all))
 
     def _repr_(self):
         return "Emacs babel"
@@ -32,13 +53,13 @@ class BackendEmacsBabel(BackendIPythonCommandline):
             return super(BackendEmacsBabel, self).displayhook(plain_text, rich_output)
 
 
-backend_ob_sage = BackendEmacsBabel()
 gdm = get_display_manager()
 
 
-def run_cell_babel(code, filename=None):
+def run_cell_babel(code, filename=None, latex=None):
     last_state.filename = filename
     last_state.result = None
+    backend_ob_sage = BackendEmacsBabel(latex=latex)
     prv = gdm.switch_backend(backend_ob_sage, shell=ip)
     try:
         res = ip.run_cell(code)
