@@ -40,14 +40,8 @@
 
 (defvar org-babel-header-args:sage
   '((latexwrap . :any)
-    (results . ((file list vector table scalar verbatim)
-                (tolatex)
-                (raw html latex org code pp drawer)
-                (replace silent none append prepend)
-                (output value))))
+    (tolatex . :any))
   "SageMath specific header arguments")
-
-(defconst ob-sagemath-to-latex-result-param "tolatex")
 
 (defvar ob-sagemath--python-script-dir
   (if load-file-name
@@ -91,15 +85,18 @@
   (let* ((res-params (assoc-default :result-params params))
          (suc-str (substring-no-properties output -2 -1))
          ;; Remove success state and the final new line
-         (out-str (substring-no-properties output 0 -3))
+         (out-str (substring-no-properties output 0 -2))
          (success (setq ob-sagemath--last-success-state
                         (cond ((string= suc-str "1")
                                t)
                               ((string= suc-str "0")
                                nil)
-                              (t (error "Invalid output."))))))
-    (sage-shell:awhen (and (member ob-sagemath-to-latex-result-param
-                                   res-params)
+                              (t (error "Invalid output:\n%s" output))))))
+    ;; Trim the final new line
+    (unless (s-blank? out-str)
+      (setq out-str (substring out-str 0 -1)))
+    (sage-shell:awhen (and (assoc :tolatex params)
+                           success
                            (assoc-default :latexwrap params))
       (setq out-str (concat (car it) out-str (cdr it))))
     (cond ((member "value" res-params)
@@ -307,17 +304,32 @@ buffer."
   (let* ((code (s-replace-all (list (cons (rx "\"") "\\\\\"")
                                     (cons (rx "\n") "\\\\n"))
                               (s-replace "\\" "\\\\" raw-code))))
-    (format "%s(\"%s\", filename=%s, latex=%s)"
+    (format "%s(\"%s\", filename=%s, latex=%s, latex_formatter=%s)"
             (ob-sagemath--python-name "run_cell_babel")
             code
             (ob-sagemath--result-file-name params buf)
-            (ob-sagemath--latex-arg params))))
+            (ob-sagemath--latex-arg params)
+            (ob-sagemath--latex-fmttr params))))
 
 (defun ob-sagemath--latex-arg (params)
-  (let ((results (assoc-default :result-params params)))
-    (cond ((member ob-sagemath-to-latex-result-param results) "True")
-          (t "False"))))
+  (let* ((tolatex-cons (assoc :tolatex params))
+         (tolatex (cdr tolatex-cons)))
+    (cond
+     ((or (null tolatex-cons)
+          (and tolatex-cons
+               (string= tolatex "no")))
+      "False")
+     (t "True"))))
 
+(defun ob-sagemath--latex-fmttr (params)
+  (let ((tolatex (assoc-default :tolatex params)))
+    (cond
+     ((or (string= tolatex "yes")
+          (string= tolatex "no")) "None")
+     (tolatex (cond ((string-match (rx bol (1+ (or alnum "." "_")) eol) tolatex)
+                      tolatex)
+                     (t (error "Invalid value of :tolatex"))))
+     (t "None"))))
 
 (defun ob-sagemath--result-file-name (params buf)
   (sage-shell:aif (assoc-default :file params)

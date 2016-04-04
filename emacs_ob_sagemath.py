@@ -20,9 +20,10 @@ last_state = LastState()
 
 class BackendEmacsBabel(BackendIPythonCommandline):
 
-    def __init__(self, latex=None):
+    def __init__(self, latex=None, latex_formatter=None):
         super(BackendEmacsBabel, self).__init__()
         self.__latex = latex
+        self.__latex_fmttr = latex_formatter
 
     def default_preferences(self):
         if self.__latex:
@@ -32,6 +33,8 @@ class BackendEmacsBabel(BackendIPythonCommandline):
         return DisplayPreferences(text=text)
 
     def latex_formatter(self, obj, **kwds):
+        if self.__latex_fmttr is not None and callable(self.__latex_fmttr):
+            return OutputLatex(self.__latex_fmttr(obj, **kwds))
         if 'concatenate' in kwds:
             combine_all = kwds['combine_all']
         else:
@@ -56,10 +59,11 @@ class BackendEmacsBabel(BackendIPythonCommandline):
 gdm = get_display_manager()
 
 
-def run_cell_babel(code, filename=None, latex=None):
+def run_cell_babel(code, filename=None, latex=None, latex_formatter=None):
     last_state.filename = filename
     last_state.result = None
-    backend_ob_sage = BackendEmacsBabel(latex=latex)
+    backend_ob_sage = BackendEmacsBabel(
+        latex=latex, latex_formatter=latex_formatter)
     prv = gdm.switch_backend(backend_ob_sage, shell=ip)
     try:
         res = ip.run_cell(code)
