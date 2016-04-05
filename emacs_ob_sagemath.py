@@ -4,7 +4,7 @@ from sage.repl.rich_output.backend_ipython import BackendIPythonCommandline
 from sage.repl.rich_output.output_basic import OutputLatex
 from sage.repl.rich_output import get_display_manager
 from sage.repl.rich_output.preferences import DisplayPreferences
-from sage.misc.latex import latex
+import sage.misc.latex
 from emacs_sage_shell import ip
 
 
@@ -39,7 +39,7 @@ class BackendEmacsBabel(BackendIPythonCommandline):
             combine_all = kwds['combine_all']
         else:
             combine_all = False
-        return OutputLatex(latex(obj, combine_all=combine_all))
+        return OutputLatex(sage.misc.latex(obj, combine_all=combine_all))
 
     def _repr_(self):
         return "Emacs babel"
