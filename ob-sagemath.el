@@ -104,7 +104,9 @@
             :success success
             :output out-str
             :result (sage-shell:send-command-to-string
-                     (ob-sagemath--python-name "print_last_result()"))))
+                     (format "%s(%s)"
+                             (ob-sagemath--python-name "print_last_result")
+                             ob-sagemath--script-name))))
           (t (make-ob-sagemath--res-info
               :success success
               :result out-str)))))
