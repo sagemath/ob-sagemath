@@ -39,8 +39,7 @@
 (add-to-list 'org-src-lang-modes '("sage" . sage-shell:sage))
 
 (defvar org-babel-header-args:sage
-  '((latexwrap . :any)
-    (tolatex . :any))
+  '((tolatex . :any))
   "SageMath specific header arguments")
 
 (defvar ob-sagemath--python-script-dir
@@ -95,10 +94,6 @@
     ;; Trim the final new line
     (unless (s-blank? out-str)
       (setq out-str (substring out-str 0 -1)))
-    (sage-shell:awhen (and (assoc :tolatex params)
-                           success
-                           (assoc-default :latexwrap params))
-      (setq out-str (concat (car it) out-str (cdr it))))
     (cond ((member "value" res-params)
            (make-ob-sagemath--res-info
             :success success
