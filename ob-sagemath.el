@@ -323,9 +323,7 @@ buffer."
     (cond
      ((or (string= tolatex "yes")
           (string= tolatex "no")) "None")
-     (tolatex (cond ((string-match (rx bol (1+ (or alnum "." "_")) eol) tolatex)
-                      tolatex)
-                     (t (error "Invalid value of :tolatex"))))
+     (tolatex tolatex)
      (t "None"))))
 
 (defun ob-sagemath--result-file-name (params buf)
