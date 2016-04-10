@@ -44,7 +44,7 @@ class BackendEmacsBabel(BackendIPythonCommandline):
             combine_all = kwds['combine_all']
         else:
             combine_all = False
-        return OutputLatex(sage.misc.latex.latex(obj, combine_all=combine_all))
+        return OutputLatex(r'\(%s\)' % (sage.misc.latex.latex(obj, combine_all=combine_all), ))
 
     def _repr_(self):
         return "Emacs babel"
