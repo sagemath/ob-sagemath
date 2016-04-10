@@ -37,11 +37,11 @@ class BackendEmacsBabel(BackendIPythonCommandline):
             text = None
         return DisplayPreferences(text=text)
 
-    def latex_formatter(self, obj, **kwds):
+    def latex_formatter(self, obj, **kwargs):
         if self.state.latex_formatter is not None and callable(self.state.latex_formatter):
-            return OutputLatex(self.state.latex_formatter(obj, **kwds))
-        if 'concatenate' in kwds:
-            combine_all = kwds['combine_all']
+            return OutputLatex(self.state.latex_formatter(obj, **kwargs))
+        if 'concatenate' in kwargs:
+            combine_all = kwargs['combine_all']
         else:
             combine_all = False
         return OutputLatex(r'\(%s\)' % (sage.misc.latex.latex(obj, combine_all=combine_all), ))
