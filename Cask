@@ -3,3 +3,5 @@
 (source melpa)
 
 (package-file "ob-sagemath.el")
+(development
+ (depends-on "f"))
