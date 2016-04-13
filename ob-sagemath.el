@@ -91,20 +91,22 @@
                               ((string= suc-str "0")
                                nil)
                               (t (error "Invalid output:\n%s" output))))))
-    ;; Trim the final new line
-    (unless (s-blank? out-str)
-      (setq out-str (substring out-str 0 -1)))
-    (cond ((member "value" res-params)
-           (make-ob-sagemath--res-info
-            :success success
-            :output out-str
-            :result (sage-shell:send-command-to-string
-                     (format "%s(%s)"
-                             (ob-sagemath--python-name "print_last_result")
-                             ob-sagemath--script-name))))
-          (t (make-ob-sagemath--res-info
+    (let ((res (if (member "value" res-params)
+                   (sage-shell:send-command-to-string
+                    (format "%s('%s')"
+                            (ob-sagemath--python-name "print_last_result")
+                            ob-sagemath--script-name))
+                 out-str)))
+      (unless (s-blank? res)
+        (setq res (substring res 0 -1)))
+      (cond ((member "value" res-params)
+             (make-ob-sagemath--res-info
               :success success
-              :result out-str)))))
+              :output out-str
+              :result res))
+            (t (make-ob-sagemath--res-info
+                :success success
+                :result res))))))
 
 ;;;###autoload
 (defun ob-sagemath-execute-async (arg)
