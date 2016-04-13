@@ -102,3 +102,7 @@ def print_last_result(module_name):
     backend_ob_sage = BackendEmacsBabel(last_state)
     with sagebackend(backend_ob_sage):
         ip.run_cell("%s.last_state.result" % module_name)
+
+
+def print_last_latex():
+    print last_state.latex

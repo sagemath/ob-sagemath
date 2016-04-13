@@ -46,7 +46,9 @@
   "Function for displaying buffer for the standard output when using :results value")
 
 (defvar org-babel-header-args:sage
-  '((tolatex . :any))
+  '((tolatex . :any)
+    (latexwrap . :any)
+    (latexnewline . :any))
   "SageMath specific header arguments")
 
 (defvar ob-sagemath--python-script-dir
@@ -106,6 +108,8 @@
                  out-str)))
       (unless (s-blank? res)
         (setq res (substring res 0 -1)))
+      (when success
+        (setq res (ob-sagemth--latex-filter res params)))
       (cond ((member "value" res-params)
              (make-ob-sagemath--res-info
               :success success
@@ -114,6 +118,21 @@
             (t (make-ob-sagemath--res-info
                 :success success
                 :result res))))))
+
+
+(defun ob-sagemth--latex-filter (s params)
+  (when (or (assoc :tolatex params)
+            (string=
+             (s-trim (sage-shell:send-command-to-string
+                      (ob-sagemath--python-name "print_last_latex()")))
+             "True"))
+    (let ((newline (assoc-default :latexnewline params)))
+      (when newline
+        (setq s (s-replace "\n" newline s))))
+    (let ((wrap (assoc-default :latexwrap params)))
+      (when wrap
+        (setq s (format "%s%s%s" (car wrap) s (cdr wrap))))))
+  s)
 
 ;;;###autoload
 (defun ob-sagemath-execute-async (arg)
