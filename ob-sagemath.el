@@ -38,6 +38,13 @@
 (add-to-list 'org-babel-tangle-lang-exts '("sage" . "sage"))
 (add-to-list 'org-src-lang-modes '("sage" . sage-shell:sage))
 
+(defgroup ob-sagemath
+  nil "Group for ob-sagemath"
+  :group 'org-babel)
+
+(defcustom ob-sagemath-output-display-function #'display-buffer
+  "Function for displaying buffer for the standard output when using :results value")
+
 (defvar org-babel-header-args:sage
   '((tolatex . :any))
   "SageMath specific header arguments")
@@ -180,7 +187,9 @@ buffer."
               output)
              (t result))))
     (when (and output (not (string= output "")))
-      (ob-sagemath--make-output-buffer output))))
+      (funcall
+       ob-sagemath-output-display-function
+       (ob-sagemath--make-output-buffer output)))))
 
 (defun ob-sagemath--res-info-to-result (res-info params)
   (let ((success-p (ob-sagemath--res-info-success res-info))
@@ -253,7 +262,9 @@ buffer."
     (with-current-buffer buf
       (erase-buffer)
       (insert output)
-      (view-mode 1))))
+      (view-mode 1))
+    ;; Return the buffer
+    buf))
 
 (defvar ob-sagemath-error-buffer-name "*Ob-SageMath-Error*")
 (defvar ob-sagemath--error-regexp
