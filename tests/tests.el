@@ -43,10 +43,9 @@
 
   (ert-deftest ob-sagemath-image ()
     (let ((file (make-temp-file "ob-sage" nil ".png")))
-      (should (string= (ob-sagemath-test-exec
-                        `((:file . ,file))
-                        "plot(sin, (0, 2*pi))")
-                       file)) 
+      (should (null (ob-sagemath-test-exec
+                     `((:file . ,file))
+                     "plot(sin, (0, 2*pi))")))
       (should
        (> (f-size file) 0))
       (delete-file file))))
