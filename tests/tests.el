@@ -54,7 +54,25 @@
                  "plot(sin, (0, 2*pi))")))
       (should (stringp file))
       (should (f-exists? file))
-      (should (> (f-size file) 0)))))
+      (should (> (f-size file) 0))))
+
+  (ert-deftest ob-sagemath-table ()
+    (let ((l '(("0" "2") ("1" "3") ("2" "5") ("3" "3^2") ("4" "17"))))
+      (should (equal (ob-sagemath-test-exec
+                      '((:result-params "table"))
+                      "[(a, factor(2^a + 1)) for a in range(5)]")
+                     l))
+      (should (equal (ob-sagemath-test-exec
+                      '((:result-params "table")
+                        (:colnames "foo" "bar"))
+                      "[(a, factor(2^a + 1)) for a in range(5)]")
+                     `(("foo" "bar") hline ,@l)))))
+
+  (ert-deftest ob-sagemath-misc ()
+    (should (string= (ob-sagemath-test-exec
+                      nil
+                      "factor(factorial(10))")
+                     "2^8 * 3^4 * 5^2 * 7"))))
 
 (ert-deftest ob-sagemath--latex-arg-test ()
   (should (string= (ob-sagemath--latex-arg '(())) "False"))
