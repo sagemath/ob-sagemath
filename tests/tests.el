@@ -48,7 +48,13 @@
                      "plot(sin, (0, 2*pi))")))
       (should
        (> (f-size file) 0))
-      (delete-file file))))
+      (delete-file file))
+    (let ((file (ob-sagemath-test-exec
+                 '((:result-params . "file"))
+                 "plot(sin, (0, 2*pi))")))
+      (should (stringp file))
+      (should (f-exists? file))
+      (should (> (f-size file) 0)))))
 
 (ert-deftest ob-sagemath--latex-arg-test ()
   (should (string= (ob-sagemath--latex-arg '(())) "False"))
