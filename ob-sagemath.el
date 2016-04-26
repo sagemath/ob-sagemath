@@ -365,16 +365,31 @@ buffer."
                 (expand-file-name it default-directory)))
     "None"))
 
+(defsubst ob-sagemath--table-dpt-lv ()
+  "Return depth in parens when the point is not in string"
+  (let ((ppss (syntax-ppss)))
+    (and (not (nth 3 ppss))
+         (car ppss))))
+
 (defun ob-sagemath-table-or-string (res params)
   (with-temp-buffer
     (insert res)
     (goto-char (point-min))
-    (cond ((looking-at (rx (or "((" "([" "[(" "[[")))
+    (cond ((and (looking-at (rx (or "((" "([" "[(" "[[")))
+                ;; When res is not a list of lists/tuples return res
+                (save-excursion
+                  (and (ignore-errors (forward-list 1))
+                       (string-match-p
+                        (rx bol (0+ whitespace) eol)
+                        (buffer-substring-no-properties (point) (point-max))))))
            (forward-char 1)
            (let ((res (with-syntax-table sage-shell-mode-syntax-table
-                        (cl-loop while (re-search-forward (rx (or "(" "[")) nil t)
-                                 when (save-excursion (forward-char -1)
-                                                      (not (nth 3 (syntax-ppss))))
+                        (cl-loop while (re-search-forward
+                                        (rx (or "(" "[")) nil t)
+                                 when (save-excursion
+                                        (forward-char -1)
+                                        (equal (ob-sagemath--table-dpt-lv)
+                                               1))
                                  collect
                                  (ob-sagemath-table-or-string--1
                                   (point)
@@ -392,8 +407,8 @@ buffer."
   (let ((start beg))
     (goto-char beg)
     (append
-     (cl-loop while (and (re-search-forward "," end t)
-                         (not (nth 3 (syntax-ppss))))
+     (cl-loop while (re-search-forward "," end t)
+              when (equal (ob-sagemath--table-dpt-lv) 2)
               collect (prog1
                           (ob-sagemath--string-unqote
                            (s-trim

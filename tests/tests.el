@@ -74,6 +74,11 @@
                       "factor(factorial(10))")
                      "2^8 * 3^4 * 5^2 * 7"))))
 
+(ert-deftest ob-sagemath-table-or-string ()
+  (should (equal (ob-sagemath-table-or-string
+                  "[[[1, 2, 3], 'a'], ('[[a, b]], c', d), [[4, 5, 6], c]]" nil)
+                 '(("[1, 2, 3]" "a") ("[[a, b]], c" "d") ("[4, 5, 6]" "c")))))
+
 (ert-deftest ob-sagemath--latex-arg-test ()
   (should (string= (ob-sagemath--latex-arg '(())) "False"))
   (should (string= (ob-sagemath--latex-arg '((:tolatex))) "True"))
