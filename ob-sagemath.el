@@ -365,6 +365,12 @@ buffer."
                 (expand-file-name it default-directory)))
     "None"))
 
+(defsubst ob-sagemath--table-dpt-lv ()
+  "Return depth in parens when the point is not in string"
+  (let ((ppss (syntax-ppss)))
+    (and (not (nth 3 ppss))
+         (car ppss))))
+
 (defun ob-sagemath-table-or-string (res params)
   (with-temp-buffer
     (insert res)
@@ -372,9 +378,12 @@ buffer."
     (cond ((looking-at (rx (or "((" "([" "[(" "[[")))
            (forward-char 1)
            (let ((res (with-syntax-table sage-shell-mode-syntax-table
-                        (cl-loop while (re-search-forward (rx (or "(" "[")) nil t)
-                                 when (save-excursion (forward-char -1)
-                                                      (not (nth 3 (syntax-ppss))))
+                        (cl-loop while (re-search-forward
+                                        (rx (or "(" "[")) nil t)
+                                 when (save-excursion
+                                        (forward-char -1)
+                                        (equal (ob-sagemath--table-dpt-lv)
+                                               1))
                                  collect
                                  (ob-sagemath-table-or-string--1
                                   (point)
@@ -390,10 +399,11 @@ buffer."
 
 (defun ob-sagemath-table-or-string--1 (beg end)
   (let ((start beg))
+    (message (buffer-substring-no-properties beg end))
     (goto-char beg)
     (append
-     (cl-loop while (and (re-search-forward "," end t)
-                         (not (nth 3 (syntax-ppss))))
+     (cl-loop while (re-search-forward "," end t)
+              when (equal (ob-sagemath--table-dpt-lv) 2)
               collect (prog1
                           (ob-sagemath--string-unqote
                            (s-trim
