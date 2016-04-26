@@ -4,8 +4,8 @@
 
 ;; Author: Sho Takemori <stakemorii@gmail.com>
 ;; URL: https://github.com/stakemori/ob-sagemath
-;; Package-Requires: ((sage-shell-mode "0.0.9") (s "1.8.0") (emacs "24"))
-;; Version: 0.1
+;; Package-Requires: ((sage-shell-mode "0.0.8") (s "1.8.0") (emacs "24"))
+;; Version: 0.2
 ;; Keywords: SageMath, org-babel
 
 ;;; License:
@@ -37,6 +37,19 @@
 (require 's)
 (add-to-list 'org-babel-tangle-lang-exts '("sage" . "sage"))
 (add-to-list 'org-src-lang-modes '("sage" . sage-shell:sage))
+
+(defgroup ob-sagemath
+  nil "Group for ob-sagemath"
+  :group 'org-babel)
+
+(defcustom ob-sagemath-output-display-function #'display-buffer
+  "Function for displaying buffer for the standard output when using :results value")
+
+(defvar org-babel-header-args:sage
+  '((tolatex . :any)
+    (latexwrap . :any)
+    (latexnewline . :any))
+  "SageMath specific header arguments")
 
 (defvar ob-sagemath--python-script-dir
   (if load-file-name
@@ -76,24 +89,50 @@
 (cl-defstruct ob-sagemath--res-info
   result success output)
 
-(defun ob-sagemath--last-res-info (output res-params)
-  (let* ((suc-str (substring-no-properties output -2 -1))
+(defun ob-sagemath--last-res-info (output params)
+  (let* ((res-params (assoc-default :result-params params))
+         (suc-str (substring-no-properties output -2 -1))
+         ;; Remove success state and the final new line
          (out-str (substring-no-properties output 0 -2))
          (success (setq ob-sagemath--last-success-state
                         (cond ((string= suc-str "1")
                                t)
                               ((string= suc-str "0")
                                nil)
-                              (t (error "Invalid output."))))))
-    (cond ((member "value" res-params)
-           (make-ob-sagemath--res-info
-            :success success
-            :output out-str
-            :result (sage-shell:send-command-to-string
-                     (ob-sagemath--python-name "print_last_result()"))))
-          (t (make-ob-sagemath--res-info
+                              (t (error "Invalid output:\n%s" output))))))
+    (let ((res (if (member "value" res-params)
+                   (sage-shell:send-command-to-string
+                    (format "%s('%s')"
+                            (ob-sagemath--python-name "print_last_result")
+                            ob-sagemath--script-name))
+                 out-str)))
+      (unless (s-blank? res)
+        (setq res (substring res 0 -1)))
+      (when success
+        (setq res (ob-sagemth--latex-filter res params)))
+      (cond ((member "value" res-params)
+             (make-ob-sagemath--res-info
               :success success
-              :result out-str)))))
+              :output out-str
+              :result res))
+            (t (make-ob-sagemath--res-info
+                :success success
+                :result res))))))
+
+
+(defun ob-sagemth--latex-filter (s params)
+  (when (or (assoc :tolatex params)
+            (string=
+             (s-trim (sage-shell:send-command-to-string
+                      (ob-sagemath--python-name "print_last_latex()")))
+             "True"))
+    (let ((newline (assoc-default :latexnewline params)))
+      (when newline
+        (setq s (s-replace "\n" newline s))))
+    (let ((wrap (assoc-default :latexwrap params)))
+      (when wrap
+        (setq s (format "%s%s%s" (car wrap) s (cdr wrap))))))
+  s)
 
 ;;;###autoload
 (defun ob-sagemath-execute-async (arg)
@@ -167,7 +206,9 @@ buffer."
               output)
              (t result))))
     (when (and output (not (string= output "")))
-      (ob-sagemath--make-output-buffer output))))
+      (funcall
+       ob-sagemath-output-display-function
+       (ob-sagemath--make-output-buffer output)))))
 
 (defun ob-sagemath--res-info-to-result (res-info params)
   (let ((success-p (ob-sagemath--res-info-success res-info))
@@ -201,8 +242,7 @@ buffer."
         (raw-code (org-babel-expand-body:generic
                    (encode-coding-string body 'utf-8)
                    params (org-babel-variable-assignments:python params)))
-        (buf (current-buffer))
-        (res-params (cdr (assoc :result-params params))))
+        (buf (current-buffer)))
 
     (ob-sagemath--init session sync)
 
@@ -217,7 +257,7 @@ buffer."
        (sync (ob-sagemath--import-script)
              (let* ((raw-output (sage-shell:send-command-to-string
                                   (ob-sagemath--code raw-code params buf)))
-                    (res-info (ob-sagemath--last-res-info raw-output res-params)))
+                    (res-info (ob-sagemath--last-res-info raw-output params)))
                (funcall callback res-info)))
        (t (sage-shell:after-output-finished
             ;; Import a Python script if necessary.
@@ -229,7 +269,7 @@ buffer."
               (sage-shell:after-redirect-finished
                 (sage-shell:change-mode-line-process nil)
                 (let* ((raw-output (sage-shell:get-value output-call-back))
-                       (res-info (ob-sagemath--last-res-info raw-output res-params)))
+                       (res-info (ob-sagemath--last-res-info raw-output params)))
                   (funcall callback res-info))))))))))
 
 
@@ -241,7 +281,9 @@ buffer."
     (with-current-buffer buf
       (erase-buffer)
       (insert output)
-      (view-mode 1))))
+      (view-mode 1))
+    ;; Return the buffer
+    buf))
 
 (defvar ob-sagemath-error-buffer-name "*Ob-SageMath-Error*")
 (defvar ob-sagemath--error-regexp
@@ -291,9 +333,30 @@ buffer."
   (let* ((code (s-replace-all (list (cons (rx "\"") "\\\\\"")
                                     (cons (rx "\n") "\\\\n"))
                               (s-replace "\\" "\\\\" raw-code))))
-    (format "%s(\"%s\", filename=%s)"
+    (format "%s(\"%s\", filename=%s, latex=%s, latex_formatter=%s)"
             (ob-sagemath--python-name "run_cell_babel")
-            code (ob-sagemath--result-file-name params buf))))
+            code
+            (ob-sagemath--result-file-name params buf)
+            (ob-sagemath--latex-arg params)
+            (ob-sagemath--latex-fmttr params))))
+
+(defun ob-sagemath--latex-arg (params)
+  (let* ((tolatex-cons (assoc :tolatex params))
+         (tolatex (cdr tolatex-cons)))
+    (cond
+     ((or (null tolatex-cons)
+          (and tolatex-cons
+               (string= tolatex "no")))
+      "False")
+     (t "True"))))
+
+(defun ob-sagemath--latex-fmttr (params)
+  (let ((tolatex (assoc-default :tolatex params)))
+    (cond
+     ((or (string= tolatex "yes")
+          (string= tolatex "no")) "None")
+     (tolatex tolatex)
+     (t "None"))))
 
 (defun ob-sagemath--result-file-name (params buf)
   (sage-shell:aif (assoc-default :file params)
