@@ -375,7 +375,13 @@ buffer."
   (with-temp-buffer
     (insert res)
     (goto-char (point-min))
-    (cond ((looking-at (rx (or "((" "([" "[(" "[[")))
+    (cond ((and (looking-at (rx (or "((" "([" "[(" "[[")))
+                ;; When res is not a list of lists/tuples return res
+                (save-excursion
+                  (and (ignore-errors (forward-list 1))
+                       (string-match-p
+                        (rx bol (0+ whitespace) eol)
+                        (buffer-substring-no-properties (point) (point-max))))))
            (forward-char 1)
            (let ((res (with-syntax-table sage-shell-mode-syntax-table
                         (cl-loop while (re-search-forward
