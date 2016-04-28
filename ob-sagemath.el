@@ -405,7 +405,6 @@ buffer."
 
 (defun ob-sagemath-table-or-string--1 (beg end)
   (let ((start beg))
-    (message (buffer-substring-no-properties beg end))
     (goto-char beg)
     (append
      (cl-loop while (re-search-forward "," end t)
