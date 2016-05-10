@@ -43,7 +43,9 @@
   :group 'org-babel)
 
 (defcustom ob-sagemath-output-display-function #'display-buffer
-  "Function for displaying buffer for the standard output when using :results value")
+  "Function for displaying buffer for the standard output when using :results value"
+  :group 'ob-sagemath
+  :type 'function)
 
 (defvar org-babel-header-args:sage
   '((tolatex . :any)
