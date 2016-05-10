@@ -332,9 +332,9 @@ buffer."
 
 
 (defun ob-sagemath--code (raw-code params buf)
-  (let* ((code (s-replace-all (list (cons (rx "\"") "\\\\\"")
-                                    (cons (rx "\n") "\\\\n"))
-                              (s-replace "\\" "\\\\" raw-code))))
+  (let* ((code (sage-shell:->> raw-code
+                               (replace-regexp-in-string (rx "\"") "\\\\\"")
+                               (replace-regexp-in-string (rx "\n") "\\\\n"))))
     (format "%s(\"%s\", filename=%s, latex=%s, latex_formatter=%s)"
             (ob-sagemath--python-name "run_cell_babel")
             code
