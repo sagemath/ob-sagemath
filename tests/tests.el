@@ -50,7 +50,7 @@
        (> (f-size file) 0))
       (delete-file file))
     (let ((file (ob-sagemath-test-exec
-                 '((:result-params . "file"))
+                 '((:result-params "file"))
                  "plot(sin, (0, 2*pi))")))
       (should (stringp file))
       (should (f-exists? file))
