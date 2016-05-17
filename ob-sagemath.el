@@ -331,9 +331,13 @@ buffer."
     (message "An error raised in the SageMath process.")))
 
 
+(defun ob-sagemath--escape-code (raw-code)
+  (setq raw-code (replace-regexp-in-string (rx "\\") "\\\\" raw-code nil t)
+        raw-code (replace-regexp-in-string (rx "\"") "\\\"" raw-code nil t))
+  (replace-regexp-in-string (rx "\n") "\\n" raw-code nil t))
+
 (defun ob-sagemath--code (raw-code params buf)
-  (let* ((code (replace-regexp-in-string (rx "\"") "\\\"" raw-code nil t))
-         (code (replace-regexp-in-string (rx "\n") "\\n" code nil t)))
+  (let ((code (ob-sagemath--escape-code raw-code)))
     (format "%s(\"%s\", filename=%s, latex=%s, latex_formatter=%s)"
             (ob-sagemath--python-name "run_cell_babel")
             code

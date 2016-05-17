@@ -85,3 +85,10 @@
   (should (string= (ob-sagemath--latex-arg '((:tolatex . "yes"))) "True"))
   (should (string= (ob-sagemath--latex-arg '((:tolatex . "no"))) "False"))
   (should (string= (ob-sagemath--latex-arg '((:tolatex . "foo.bar"))) "True")))
+
+(ert-deftest ob-sagemath--escape-code-test ()
+  (should (string= (ob-sagemath--escape-code "print 'foobar\\nbar\\nbaz'
+print \"foo\\nbar\"
+print r\"\\bar\"
+print r'\\foo\\n\\bar'")
+                   "print 'foobar\\\\nbar\\\\nbaz'\\nprint \\\"foo\\\\nbar\\\"\\nprint r\\\"\\\\bar\\\"\\nprint r'\\\\foo\\\\n\\\\bar'")))
