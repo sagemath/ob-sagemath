@@ -132,7 +132,7 @@
       (when newline
         (setq s (s-replace "\n" newline s))))
     (let ((wrap (assoc-default :latexwrap params)))
-      (when wrap
+      (when (and wrap (listp wrap))
         (setq s (format "%s%s%s" (car wrap) s (cdr wrap))))))
   s)
 
