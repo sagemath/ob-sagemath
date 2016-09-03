@@ -159,17 +159,21 @@ buffer."
           (t (call-interactively #'org-ctrl-c-ctrl-c)))))
 
 (defun ob-sagemath--init (session sync)
-  (cond ((string= session "none")
-         (error
-          (concat
-           "ob-sagemath currently only supports evaluation using a session."
-           " Make sure your src block has a :session param.")))
-        ((stringp session)
-         (setq sage-shell:process-buffer
-               (sage-shell:run "sage" nil 'no-switch
-                               (format "*Sage<%s>*" session))))
-        (t (setq sage-shell:process-buffer
-                 (sage-shell:run "sage" nil 'no-switch))))
+  (unless (and (sage-shell:sage-executable)
+               (executable-find (sage-shell:sage-executable)))
+    (error sage-shell:exec-path-error-msg))
+  (let ((cmd (sage-shell:sage-executable)))
+    (cond ((string= session "none")
+           (error
+            (concat
+             "ob-sagemath currently only supports evaluation using a session."
+             " Make sure your src block has a :session param.")))
+          ((stringp session)
+           (setq sage-shell:process-buffer
+                 (sage-shell:run cmd nil 'no-switch
+                                 (format "*Sage<%s>*" session))))
+          (t (setq sage-shell:process-buffer
+                   (sage-shell:run cmd nil 'no-switch)))))
 
   (unless sync
     (org-babel-remove-result)
