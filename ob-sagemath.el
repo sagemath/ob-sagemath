@@ -170,10 +170,12 @@ buffer."
              " Make sure your src block has a :session param.")))
           ((stringp session)
            (setq sage-shell:process-buffer
-                 (sage-shell:run cmd nil 'no-switch
-                                 (format "*Sage<%s>*" session))))
+                 (sage-shell:run cmd nil
+                                 :switch-function 'no-switch
+                                 :buffer-name (format "*Sage<%s>*" session))))
           (t (setq sage-shell:process-buffer
-                   (sage-shell:run cmd nil 'no-switch)))))
+                   (sage-shell:run cmd nil
+                                   :switch-function 'no-switch)))))
 
   (unless sync
     (org-babel-remove-result)
