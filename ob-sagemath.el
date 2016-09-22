@@ -146,11 +146,16 @@ buffer."
     (4 (ob-sagemath-execute-buffer-async))))
 
 (defun ob-sagemath-execute-async-1 ()
-  (let* ((info (org-babel-get-src-block-info))
+  (let* ((org-element--cache nil)       ; Avoid using cache.
+         (info (org-babel-get-src-block-info))
          (language (car info))
          (body (nth 1 info))
          (params (nth 2 info)))
     (cond ((and language body
+                ;; To avoid byte-compiler warning
+                ;; with-no-warnings doesn't work in Emacs 25.1
+                (null org-element--cache)
+
                 (ob-sagemath--cache-current-p info params))
            ;; If result is cached, call sync version.
            (org-babel-execute-src-block nil info params))
