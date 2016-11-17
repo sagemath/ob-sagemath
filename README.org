@@ -68,6 +68,10 @@
    If the =org-mode= buffer is killed during the evaluation, the output will be lost.
    Please do not kill the =org-mode= buffer until the evaluation completes.
 
+   Because =org-mode= doesn't provide a standard way for asynchronous evaluation,
+   *this feature may be unstable.*
+
+
 ** Images
    Image files of graphs can be embedded by providing the =:file= header argument.
    By evaluating the code block, the image file is stored in the file.
