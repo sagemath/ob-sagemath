@@ -111,7 +111,7 @@
       (unless (s-blank? res)
         (setq res (substring res 0 -1)))
       (when success
-        (setq res (ob-sagemth--latex-filter res params)))
+        (setq res (ob-sagemath--latex-filter res params)))
       (cond ((member "value" res-params)
              (make-ob-sagemath--res-info
               :success success
@@ -122,7 +122,7 @@
                 :result res))))))
 
 
-(defun ob-sagemth--latex-filter (s params)
+(defun ob-sagemath--latex-filter (s params)
   (when (or (assoc :tolatex params)
             (string=
              (s-trim (sage-shell:send-command-to-string
