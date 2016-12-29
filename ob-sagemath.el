@@ -348,10 +348,17 @@ buffer."
   (replace-regexp-in-string (rx "\n") "\\n" raw-code nil t))
 
 (defun ob-sagemath--code (raw-code params buf)
-  (let ((code (ob-sagemath--escape-code raw-code)))
+  "Return code for evaluatation."
+  (let ((tmp-file (sage-shell-edit:temp-file "sage")))
+    (with-temp-buffer
+      (insert raw-code)
+      (sage-shell-edit:write-region-to-file
+       (point-min)
+       (point-max)
+       tmp-file))
     (format "%s(\"%s\", filename=%s, latex=%s, latex_formatter=%s)"
-            (ob-sagemath--python-name "run_cell_babel")
-            code
+            (ob-sagemath--python-name "read_file_and_run_cell")
+            tmp-file
             (ob-sagemath--result-file-name params buf)
             (ob-sagemath--latex-arg params)
             (ob-sagemath--latex-fmttr params))))
@@ -375,6 +382,7 @@ buffer."
      (t "None"))))
 
 (defun ob-sagemath--result-file-name (params buf)
+  "Return png file name."
   (sage-shell:aif (assoc-default :file params)
       (format "\"%s\""
               (with-current-buffer buf

@@ -1,13 +1,14 @@
 # -*- coding: utf-8; mode: sage -*-
 from __future__ import print_function
 
-from sage.repl.rich_output.output_catalog import OutputImagePng
+import sage.misc.latex
+from emacs_sage_shell import read_file_and_run_cell as ss_read_file_and_run_cell
+from emacs_sage_shell import ip
+from sage.repl.rich_output import get_display_manager
 from sage.repl.rich_output.backend_ipython import BackendIPythonCommandline
 from sage.repl.rich_output.output_basic import OutputLatex
-from sage.repl.rich_output import get_display_manager
+from sage.repl.rich_output.output_catalog import OutputImagePng
 from sage.repl.rich_output.preferences import DisplayPreferences
-import sage.misc.latex
-from emacs_sage_shell import ip
 
 
 class LastState(object):
@@ -67,7 +68,8 @@ class BackendEmacsBabel(BackendIPythonCommandline):
 gdm = get_display_manager()
 
 
-def run_cell_babel(code, filename=None, latex=None, latex_formatter=None):
+def run_cell_babel_base(run_cell_func,
+                        filename=None, latex=None, latex_formatter=None):
     last_state.filename = filename
     last_state.result = None
     last_state.latex = latex
@@ -75,12 +77,18 @@ def run_cell_babel(code, filename=None, latex=None, latex_formatter=None):
 
     backend_ob_sage = BackendEmacsBabel(last_state)
     with sagebackend(backend_ob_sage):
-        res = ip.run_cell(code)
+        res = run_cell_func()
         if res.success:
             last_state.result = res.result
             print(1)
         else:
             print(0)
+
+
+def read_file_and_run_cell(tmp_file, **kwargs):
+    def run_cel_func():
+        return ss_read_file_and_run_cell(tmp_file)
+    run_cell_babel_base(run_cel_func, **kwargs)
 
 
 class WithBackEnd(object):
