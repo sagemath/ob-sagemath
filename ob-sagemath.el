@@ -141,7 +141,7 @@
   "Execute current src code block. With prefix argument, evaluate all code in a
 buffer."
   (interactive "p")
-  (case arg
+  (cl-case arg
     (1 (ob-sagemath-execute-async-1))
     (4 (ob-sagemath-execute-buffer-async))))
 
