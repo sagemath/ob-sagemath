@@ -1,4 +1,6 @@
 # -*- coding: utf-8; mode: sage -*-
+from __future__ import print_function
+
 from sage.repl.rich_output.output_catalog import OutputImagePng
 from sage.repl.rich_output.backend_ipython import BackendIPythonCommandline
 from sage.repl.rich_output.output_basic import OutputLatex
@@ -76,9 +78,9 @@ def run_cell_babel(code, filename=None, latex=None, latex_formatter=None):
         res = ip.run_cell(code)
         if res.success:
             last_state.result = res.result
-            print 1
+            print(1)
         else:
-            print 0
+            print(0)
 
 
 class WithBackEnd(object):
@@ -105,4 +107,4 @@ def print_last_result(module_name):
 
 
 def print_last_latex():
-    print last_state.latex
+    print(last_state.latex)
