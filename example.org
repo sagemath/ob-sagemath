@@ -9,15 +9,15 @@
 #+end_src
 
 #+RESULTS:
-: Emacs: 25.0.92.2
-: Org: 8.3.4
+: Emacs: 25.1.90.1
+: Org: 9.0.3
 
 #+begin_src sage :exports both
   print version()
 #+end_src
 
 #+RESULTS:
-: SageMath Version 7.1.beta5, Release Date: 2016-02-25
+: SageMath version 7.4, Release Date: 2016-10-18
 
 ** Basic math
 #+begin_src sage :exports both
@@ -101,6 +101,7 @@ This example is from the document of the function =implicit_plot3d=.
 #+RESULTS:
 #+begin_example
 Rank 2
+
 [(-2 : 0 : 1),
  (-1 : 1 : 1),
  (0 : 0 : 1),
