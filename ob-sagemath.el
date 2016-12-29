@@ -97,9 +97,9 @@
          ;; Remove success state and the final new line
          (out-str (substring-no-properties output 0 -2))
          (success (setq ob-sagemath--last-success-state
-                        (cond ((string= suc-str "1")
+                        (cond ((string= suc-str "0")
                                t)
-                              ((string= suc-str "0")
+                              ((string= suc-str "1")
                                nil)
                               (t (error "Invalid output:\n%s" output))))))
     (let ((res (if (member "value" res-params)
@@ -269,21 +269,27 @@ buffer."
       (cond
        (sync (ob-sagemath--import-script)
              (let* ((raw-output (sage-shell:send-command-to-string
-                                  (ob-sagemath--code raw-code params buf)))
+                                 (ob-sagemath--code raw-code params buf)))
                     (res-info (ob-sagemath--last-res-info raw-output params)))
                (funcall callback res-info)))
        (t (sage-shell:after-output-finished
             ;; Import a Python script if necessary.
             (ob-sagemath--import-script)
 
-            (let ((output-call-back (sage-shell:send-command
-                                     (ob-sagemath--code raw-code params buf))))
-              (sage-shell:change-mode-line-process t "eval")
-              (sage-shell:after-redirect-finished
-                (sage-shell:change-mode-line-process nil)
-                (let* ((raw-output (sage-shell:get-value output-call-back))
-                       (res-info (ob-sagemath--last-res-info raw-output params)))
-                  (funcall callback res-info))))))))))
+            (sage-shell:change-mode-line-process t "eval")
+            (sage-shell:run-cell-raw-output
+             (ob-sagemath--code raw-code params buf)
+             :callback (lambda (raw-output)
+                         (condition-case err-var
+                             (progn
+                               (sage-shell:change-mode-line-process nil)
+                               (funcall callback
+                                        (ob-sagemath--last-res-info raw-output params)))
+
+                           (error
+                            (sage-shell:change-mode-line-process nil)
+                            (signal (car err-var)
+                                    (cdr err-var))))))))))))
 
 
 (defvar ob-sagemath-output-buffer-name "*Ob-SageMath-Output*")

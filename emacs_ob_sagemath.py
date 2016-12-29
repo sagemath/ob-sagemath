@@ -80,9 +80,9 @@ def run_cell_babel_base(run_cell_func,
         res = run_cell_func()
         if res.success:
             last_state.result = res.result
-            print(1)
-        else:
             print(0)
+        else:
+            print(1)
 
 
 def read_file_and_run_cell(tmp_file, **kwargs):
