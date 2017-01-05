@@ -1,6 +1,6 @@
 ;;; ob-sagemath.el --- org-babel functions for SageMath evaluation -*- lexical-binding: t -*-
 
-;; Copyright (C) 2016- Sho Takemori.
+;; Copyright (C) 2016 - 2017 Sho Takemori.
 
 ;; Author: Sho Takemori <stakemorii@gmail.com>
 ;; URL: https://github.com/stakemori/ob-sagemath
