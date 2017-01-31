@@ -271,6 +271,7 @@ buffer."
              (let* ((raw-output (sage-shell:send-command-to-string
                                  (ob-sagemath--code raw-code params buf)))
                     (res-info (ob-sagemath--last-res-info raw-output params)))
+               (sage-shell:clear-command-cache)
                (funcall callback res-info)))
        (t (sage-shell:after-output-finished
             ;; Import a Python script if necessary.
@@ -283,6 +284,7 @@ buffer."
                          (condition-case err-var
                              (progn
                                (sage-shell:change-mode-line-process nil)
+                               (sage-shell:clear-command-cache)
                                (funcall callback
                                         (ob-sagemath--last-res-info raw-output params)))
 
