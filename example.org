@@ -85,6 +85,21 @@ This example is from the document of the function =implicit_plot3d=.
 | 53 |                9007199254740997 |
 | 54 |               18014398509482143 |
 
+You can also pass the header argument =:colnames= (an elisp) list to specify the column names.
+#+begin_src sage :results table :exports both :colnames '("a" "Smallest prime greater than 2^a")
+  [(a, next_prime(2^a)) for a in range(100, 105)]
+#+end_src
+
+#+RESULTS:
+|   a |  Smallest prime greater than 2^a |
+|-----+----------------------------------|
+| 100 |  1267650600228229401496703205653 |
+| 101 |  2535301200456458802993406410833 |
+| 102 |  5070602400912917605986812821771 |
+| 103 | 10141204801825835211973625643089 |
+| 104 | 20282409603651670423947251286127 |
+
+
 ** Elliptic curve
 #+begin_src sage :exports both
   E = EllipticCurve(u'389a'); E
