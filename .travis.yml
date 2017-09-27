@@ -1,9 +1,10 @@
 env:
   # - EMACS=emacs EVM_EMACS=emacs-24.1-bin
   # - EMACS=emacs EVM_EMACS=emacs-24.2-bin
-  - EMACS=emacs EVM_EMACS=emacs-24.3-bin
-  - EMACS=emacs EVM_EMACS=emacs-24.4-bin
-  - EMACS=emacs EVM_EMACS=emacs-24.5-bin
+  - EMACS=emacs EVM_EMACS=emacs-24.4-travis
+  - EMACS=emacs EVM_EMACS=emacs-24.5-travis
+  - EMACS=emacs EVM_EMACS=emacs-25.1-travis
+  - EMACS=emacs EVM_EMACS=emacs-25.2-travis
 before_install:
   # Install Emacs
   - sudo mkdir /usr/local/evm
