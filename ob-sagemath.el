@@ -4,7 +4,7 @@
 
 ;; Author: Sho Takemori <stakemorii@gmail.com>
 ;; URL: https://github.com/stakemori/ob-sagemath
-;; Package-Requires: ((sage-shell-mode "0.0.8") (s "1.8.0") (emacs "24"))
+;; Package-Requires: ((sage-shell-mode "0.3") (s "1.12.0") (emacs "24.1"))
 ;; Version: 0.4
 ;; Keywords: SageMath, org-babel
 
