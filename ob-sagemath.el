@@ -414,25 +414,28 @@ buffer."
                        (string-match-p
                         (rx bol (0+ whitespace) eol)
                         (buffer-substring-no-properties (point) (point-max))))))
-           (forward-char 1)
-           (let ((res (with-syntax-table sage-shell-mode-syntax-table
-                        (cl-loop while (re-search-forward
-                                        (rx (or "(" "[")) nil t)
-                                 when (save-excursion
-                                        (forward-char -1)
-                                        (equal (ob-sagemath--table-dpt-lv)
-                                               1))
-                                 collect
-                                 (ob-sagemath-table-or-string--1
-                                  (point)
-                                  (progn (forward-char -1)
-                                         (forward-list) (1- (point))))))))
-             (let ((colnames (cdr (assoc :colnames params))))
-               (cond ((equal colnames "yes")
-                      (append (list (car res) 'hline) (cdr res)))
-                     ((and colnames (listp colnames))
-                      (append (list colnames 'hline) res))
-                     (t res)))))
+           (condition-case nil
+               (progn
+                 (forward-char 1)
+                 (let ((res (with-syntax-table sage-shell-mode-syntax-table
+                              (cl-loop while (re-search-forward
+                                              (rx (or "(" "[")) nil t)
+                                       when (save-excursion
+                                              (forward-char -1)
+                                              (equal (ob-sagemath--table-dpt-lv)
+                                                     1))
+                                       collect
+                                       (ob-sagemath-table-or-string--1
+                                        (point)
+                                        (progn (forward-char -1)
+                                               (forward-list) (1- (point))))))))
+                   (let ((colnames (cdr (assoc :colnames params))))
+                     (cond ((equal colnames "yes")
+                            (append (list (car res) 'hline) (cdr res)))
+                           ((and colnames (listp colnames))
+                            (append (list colnames 'hline) res))
+                           (t res)))))
+             (error res)))
           (t res))))
 
 (defun ob-sagemath-table-or-string--1 (beg end)
