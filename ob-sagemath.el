@@ -255,7 +255,8 @@ buffer."
         (raw-code (org-babel-expand-body:generic
                    (encode-coding-string body 'utf-8)
                    params (org-babel-variable-assignments:python params)))
-        (buf (current-buffer)))
+        (buf (current-buffer))
+	(coding-system-for-write 'utf-8))
 
     (ob-sagemath--init session sync)
 
