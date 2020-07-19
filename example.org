@@ -1,4 +1,4 @@
-* Examples of code blocks
+** Examples of code blocks
 ** Versions
 #+begin_src emacs-lisp :exports both :results output
   (princ "Emacs: ")
@@ -9,15 +9,15 @@
 #+end_src
 
 #+RESULTS:
-: Emacs: 26.0.50
-: Org: 9.0.5
+: Emacs: 27.0.91
+: Org: 9.4
 
 #+begin_src sage :exports both
-  print version()
+  print(version())
 #+end_src
 
 #+RESULTS:
-: SageMath version 8.0.beta2, Release Date: 2017-04-12
+: SageMath version 9.0, Release Date: 2020-01-01
 
 ** Basic math
 #+begin_src sage :exports both
@@ -28,16 +28,15 @@
 : 2^8 * 3^4 * 5^2 * 7
 
 ** Graphs
-#+begin_src sage :file images/sin.png :exports both
+#+begin_src sage :results file :exports both :file sin.png
   P = plot(sin(x), (0, 2*pi), figsize=[5, 4]); P
 #+end_src
 
 #+RESULTS:
-[[file:images/sin.png]]
-
+[[file:sin.png]]
 
 This example is from the document of the method =plot= of a matrix object.
-#+begin_src sage :file images/mat.png :exports both
+#+begin_src sage :results file :file images/mat.png :exports both
   m = random_matrix(RDF, 50)
   m.plot(figsize=5)
 #+end_src
@@ -46,7 +45,7 @@ This example is from the document of the method =plot= of a matrix object.
 [[file:images/mat.png]]
 
 This example is from the document of the function =implicit_plot3d=.
-#+BEGIN_SRC sage :file images/implicit_plot3d_example.png :exports both
+#+BEGIN_SRC sage :results file :file images/implicit_plot3d_example.png :exports both
   var('x,y,z')
   T = RDF(golden_ratio)
   p = 2 - (cos(x + T*y) + cos(x - T*y) + cos(y + T*z) + cos(y - T*z) + cos(z - T*x) + cos(z + T*x))
@@ -109,14 +108,13 @@ You can also pass the header argument =:colnames= (an elisp) list to specify the
 : Elliptic Curve defined by y^2 + y = x^3 + x^2 - 2*x over Rational Field
 
 #+begin_src sage :exports both
-  print "Rank", E.rank()
+  print("Rank", E.rank())
   E.integral_points()
 #+end_src
 
 #+RESULTS:
 #+begin_example
 Rank 2
-
 [(-2 : 0 : 1),
  (-1 : 1 : 1),
  (0 : 0 : 1),
@@ -129,7 +127,7 @@ Rank 2
  (188 : 2584 : 1)]
 #+end_example
 
-#+begin_src sage :file images/e389a.png :exports both
+#+begin_src sage :results output file :file images/e389a.png :exports both
   E.plot(figsize=5)
 #+end_src
 
